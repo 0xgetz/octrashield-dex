@@ -1,17 +1,17 @@
 [package]
-name = "octrashield-factory"
+name = "octrashield-shared"
 version = "0.1.0"
 edition = "2021"
 authors = ["OctraShield Team"]
-description = "OctraShieldFactory — Pool registry and deployer for OctraShield DEX"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
+description = "Shared types, HFHE wrappers, and OCS01 interfaces for OctraShield DEX"
 
 [dependencies]
-octrashield-shared = { path = "../shared" }
 octra-sdk = { workspace = true }
 octra-hfhe = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 borsh = { workspace = true }
+ed25519-dalek = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
