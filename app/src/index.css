@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+ * Global Base Styles — OctraShield Dark Theme
+ * ============================================================================ */
+
+@layer base {
+  * {
+    @apply border-surface-500/30;
+  }
+
+  html {
+    @apply bg-surface-900 text-surface-100 antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.surface.500') transparent;
+  }
+
+  body {
+    @apply min-h-screen;
+  }
+
+  /* Custom scrollbar for webkit */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-500/50 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-400;
+  }
+
+  /* Number input — hide spin buttons */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+/* ============================================================================
+ * Component Layer — Reusable Utility Classes
+ * ============================================================================ */
+
+@layer components {
+  /* Glass card — frosted glass effect */
+  .glass-card {
+    @apply bg-surface-800/60 backdrop-blur-md border border-surface-500/20
+           rounded-2xl shadow-inner-glow;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-200
+           hover:bg-surface-700/60 hover:border-surface-500/30 hover:shadow-glow-sm;
+  }
+
+  /* Gradient border — animated gradient outline */
+  .gradient-border {
+    position: relative;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, theme('colors.octra.500'), theme('colors.shield.500'));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    @apply relative overflow-hidden;
+    background: linear-gradient(
+      90deg,
+      theme('colors.surface.700') 0%,
+      theme('colors.surface.600') 50%,
+      theme('colors.surface.700') 100%
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer rounded;
+  }
+
+  /* Encrypted value reveal animation */
+  .encrypted-reveal {
+    @apply transition-all duration-500 ease-out;
+  }
+  .encrypted-reveal.hidden-value {
+    @apply blur-sm select-none;
+    filter: blur(6px);
+  }
+  .encrypted-reveal.revealed {
+    @apply blur-0;
+    filter: blur(0);
+  }
+
+  /* Glow button */
+  .btn-glow {
+    @apply relative overflow-hidden;
+  }
+  .btn-glow::after {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: radial-gradient(circle at center, rgba(40, 163, 255, 0.15) 0%, transparent 70%);
+  }
+  .btn-glow:hover::after {
+    @apply opacity-100;
+  }
+
+  /* Token pair display */
+  .token-pair {
+    @apply inline-flex items-center gap-1;
+  }
+  .token-pair .divider {
+    @apply text-surface-400 mx-0.5;
+  }
+
+  /* Tab navigation */
+  .tab-active {
+    @apply text-octra-400 border-b-2 border-octra-400;
+  }
+  .tab-inactive {
+    @apply text-surface-300 border-b-2 border-transparent
+           hover:text-surface-100 hover:border-surface-500 transition-colors;
+  }
+
+  /* Stat card */
+  .stat-value {
+    @apply text-2xl font-semibold text-surface-50 font-mono tracking-tight;
+  }
+  .stat-label {
+    @apply text-xs font-medium text-surface-300 uppercase tracking-wider;
+  }
+
+  /* Privacy shield indicator */
+  .shield-active {
+    @apply text-shield-400;
+    text-shadow: 0 0 8px rgba(132, 61, 255, 0.4);
+  }
+}
+
+/* ============================================================================
+ * Utility Layer — One-off Helpers
+ * ============================================================================ */
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent
+           bg-gradient-to-r from-octra-400 to-shield-400;
+  }
+
+  .text-gradient-brand {
+    @apply bg-clip-text text-transparent
+           bg-gradient-to-r from-octra-300 via-octra-400 to-shield-400;
+  }
+
+  /* Mesh background for hero sections */
+  .bg-mesh {
+    background-image:
+      radial-gradient(at 20% 30%, theme('colors.octra.950') 0, transparent 50%),
+      radial-gradient(at 80% 70%, theme('colors.shield.950') 0, transparent 50%),
+      radial-gradient(at 50% 50%, theme('colors.surface.900') 0, transparent 100%);
+  }
+
+  /* Noise texture overlay */
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+}
