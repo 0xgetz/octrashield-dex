@@ -1,0 +1,17 @@
+[package]
+name = "octrashield-token"
+version = "0.1.0"
+edition = "2021"
+authors = ["OctraShield Team"]
+description = "ShieldToken - OCS01 encrypted ERC20 LP token for OctraShield DEX"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+octrashield-shared = { path = "../shared" }
+octra-sdk = { workspace = true }
+octra-hfhe = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+borsh = { workspace = true }
