@@ -1,0 +1,17 @@
+[package]
+name = "octrashield-pair"
+version = "0.1.0"
+edition = "2021"
+authors = ["OctraShield Team"]
+description = "OctraShieldPair — Hybrid CPAMM + Concentrated Liquidity pool with HFHE encryption"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+octrashield-shared = { path = "../shared" }
+octra-sdk = { workspace = true }
+octra-hfhe = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+borsh = { workspace = true }
