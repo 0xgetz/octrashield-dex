@@ -117,11 +117,3 @@ cargo build --target wasm32-unknown-unknown --release
 
 ---
 
-## Next: Phase 2
-
-Say **"NEXT PHASE"** to receive:
-- Complete TypeScript SDK (`octrashield-sdk`) with client-side encryption/decryption
-- React hooks for all contract interactions
-- OCS01 transaction builder with Ed25519 signing
-- HFHE client library wrappers
-- Pool discovery and route optimization
