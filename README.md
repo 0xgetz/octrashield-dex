@@ -143,7 +143,7 @@ const { amountOut } = await sdk.router.swapExactInput({
 | **Network** | Octra Devnet |
 | **RPC** | `http://165.227.225.79:8080` |
 | **Chain ID** | `octra-devnet-1` |
-| **Explorer** | https://scan.octra.org |
+| **Explorer** | https://octrascan.io |
 | **Faucet** | https://faucet.octra.org |
 | **Address format** | `oct` + Base58 (e.g. `octBUHw585BrAMP...`) |
 
