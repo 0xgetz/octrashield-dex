@@ -10,17 +10,17 @@
 // ============================================================================
 
 /**
- * Mersenne prime p = 2^61 - 1
+ * Mersenne prime p = 2^127 - 1
  * The modular arithmetic field for all HFHE operations.
  * Matches `shared::constants::MERSENNE_PRIME` in the Rust contracts.
  */
-export const MERSENNE_PRIME = 2305843009213693951n;
+export const MERSENNE_PRIME = 170141183460469231731687303715884105727n;
 
 /**
  * Bit width of the Mersenne prime field.
  * Used for noise budget calculations and encoding validation.
  */
-export const MERSENNE_BITS = 61;
+export const MERSENNE_BITS = 127;
 
 /**
  * Maximum plaintext value before encryption.
@@ -163,10 +163,11 @@ export const AI_SANDWICH_WINDOW_BLOCKS = 3;
 // ============================================================================
 
 export interface NetworkConfig {
-  readonly chainId: number;
+  readonly chainId: string | number;
   readonly name: string;
   readonly rpcUrl: string;
   readonly explorerUrl: string;
+  readonly faucetUrl?: string;
   readonly contracts: {
     readonly factory: string;
     readonly router: string;
@@ -191,10 +192,11 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     },
   },
   'octra-testnet': {
-    chainId: 9999,
-    name: 'Octra Testnet',
-    rpcUrl: 'https://rpc-testnet.octra.network',
-    explorerUrl: 'https://explorer-testnet.octra.network',
+    chainId: 'octra-devnet-1',
+    name: 'Octra Devnet',
+    rpcUrl: 'http://165.227.225.79:8080',
+    explorerUrl: 'https://scan.octra.org',
+    faucetUrl: 'https://faucet.octra.org',
     contracts: {
       factory: '0x0000000000000000000000000000000000000000',
       router: '0x0000000000000000000000000000000000000000',
@@ -213,10 +215,11 @@ export const DEFAULT_NETWORK = 'octra-testnet';
 // ============================================================================
 
 /**
- * Ciphertext serialization prefix byte.
- * All HFHE ciphertexts start with this byte for type identification.
+ * Ciphertext serialization prefix bytes.
+ * All HFHE ciphertexts start with these bytes for type identification.
+ * [0x48, 0x46, 0x01] = ASCII 'H', ASCII 'F', version byte 0x01
  */
-export const CIPHERTEXT_PREFIX = 0xfe;
+export const CIPHERTEXT_PREFIX = new Uint8Array([0x48, 0x46, 0x01]);
 
 /**
  * Maximum serialized ciphertext size in bytes.
