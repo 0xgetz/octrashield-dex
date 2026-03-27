@@ -13,38 +13,57 @@ It combines a hybrid Constant Product + Concentrated Liquidity model (inspired b
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend (React)                      │
-│         app/src/  ·  Vite  ·  WalletProvider  ·  Swap UI    │
-└────────────────────────┬────────────────────────────────────┘
-                         │ TypeScript SDK
-┌────────────────────────▼────────────────────────────────────┐
-│                     SDK  (sdk/src/)                          │
-│      HFHE encrypt/decrypt  ·  OCS01 client  ·  Router       │
-└───────┬──────────────────────────────────────┬──────────────┘
-        │ OCS01 call_*                          │ OCS01 call_*
-┌───────▼──────────┐                  ┌────────▼─────────────┐
-│  OctraShield     │  call_create_pool│  OctraShield         │
-│  Factory         │─────────────────▶│  Pair (per pool)     │
-│  contracts/      │                  │  contracts/pair/     │
-│  factory/        │                  │  ·  call_swap        │
-└──────────────────┘                  │  ·  call_mint/burn   │
-                                      │  ·  call_flash       │
-┌─────────────────┐                   └────────────┬─────────┘
-│  OctraShield    │   call_swap_exact_input         │
-│  Router         │────────────────────────────────▶│
-│  contracts/     │                                 │
-│  router/        │                                 │
-└─────────────────┘                   ┌─────────────▼────────┐
-                                      │  AI Fee Engine        │
-┌─────────────────┐                   │  contracts/ai_engine/ │
-│  ShieldToken    │                   │  ·  call_set_ai_fee   │
-│  (LP token)     │                   │  ·  EMA + MEV detect  │
-│  contracts/     │                   └──────────────────────┘
-│  shield_token/  │
-└─────────────────┘
-          All values encrypted via HFHE (Octra Network)
+```mermaid
+graph LR
+    subgraph Frontend ["Frontend (React)"]
+        A[app/src/ <br> Vite + React <br> WalletProvider <br> Swap UI]
+    end
+
+    subgraph SDK ["SDK (TypeScript)"]
+        B[sdk/src/ <br> HFHE encrypt/decrypt <br> OCS01 Client <br> Router]
+    end
+
+    subgraph Factory ["OctraShield Factory"]
+        C[contracts/factory/ <br> OctraShield Factory]
+    end
+
+    subgraph Pair ["OctraShield Pair (per pool)"]
+        D[contracts/pair/ <br> call_swap <br> call_mint <br> call_burn <br> call_flash]
+    end
+
+    subgraph Router ["OctraShield Router"]
+        E[contracts/router/ <br> OctraShield Router]
+    end
+
+    subgraph Token ["ShieldToken (LP Token)"]
+        F[contracts/shield_token/ <br> ShieldToken]
+    end
+
+    subgraph AI ["AI Fee Engine"]
+        G[contracts/ai_engine/ <br> call_set_ai_fee <br> EMA + MEV Detection]
+    end
+
+    %% Connections
+    A -->|"TypeScript SDK"| B
+    B -->|"OCS01 call_*"| C
+    B -->|"OCS01 call_*"| D
+    C -->|"call_create_pool"| D
+    E -->|"call_swap_exact_input"| D
+    D -->|"call_swap"| E
+    F -.->|"LP Token"| D
+    D -->|"Encrypted Values"| G
+    E -->|"call_swap"| G
+
+    %% Global note
+    classDef note fill:#1a1a2e,stroke:#00ff9d,color:#fff
+    note["All values encrypted via HFHE (Octra Network)"]:::note
+
+    style Frontend fill:#0f172a,stroke:#64748b
+    style SDK fill:#1e2937,stroke:#64748b
+    style Factory fill:#312e81,stroke:#818cf8
+    style Pair fill:#312e81,stroke:#818cf8
+    style Router fill:#312e81,stroke:#818cf8
+    style AI fill:#4338ca,stroke:#a5b4fc
 ```
 
 ---
