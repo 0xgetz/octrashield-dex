@@ -331,7 +331,7 @@ export class TransactionBuilder {
       bytesToHex(encoded),
     ]);
 
-    return response.result as T;
+    return response as unknown as T;
   }
 
   // --------------------------------------------------------------------------
@@ -439,7 +439,7 @@ export class TransactionBuilder {
             blockTimestamp: BigInt(receipt.blockTimestamp),
             gasUsed: BigInt(receipt.gasUsed),
             status: receipt.status,
-            events: (receipt.events || []).map(parseEvent),
+            events: (receipt.events || []).map((e: any) => parseEvent(e as any)),
             revertReason: receipt.revertReason,
           };
         }
