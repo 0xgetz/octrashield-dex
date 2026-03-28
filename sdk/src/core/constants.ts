@@ -219,7 +219,7 @@ export const DEFAULT_NETWORK = 'octra-testnet';
  * All HFHE ciphertexts start with these bytes for type identification.
  * [0x48, 0x46, 0x01] = ASCII 'H', ASCII 'F', version byte 0x01
  */
-export const CIPHERTEXT_PREFIX = new Uint8Array([0x48, 0x46, 0x01]);
+export const CIPHERTEXT_PREFIX = 0xFE;
 
 /**
  * Maximum serialized ciphertext size in bytes.

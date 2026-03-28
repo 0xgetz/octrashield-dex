@@ -148,7 +148,7 @@ export function useOctraShield(
 
       txBuilderRef.current = builder;
       setAddress(builder.getSignerAddress());
-      setChainId(networkConfig.chainId);
+      setChainId(Number(networkConfig.chainId));
       setStatus('connected');
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
