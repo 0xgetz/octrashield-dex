@@ -1,44 +1,82 @@
-# =============================================================================
-# OctraShield DEX — .gitignore
-# =============================================================================
-
-# ---- Rust / Cargo ----
-target/
-**/*.rs.bk
-Cargo.lock
-*.wasm
-
-# ---- Node / TypeScript ----
-node_modules/
-dist/
-build/
-.turbo/
-*.tsbuildinfo
-.vite/
-
-# ---- Testing ----
-coverage/
-*.lcov
-.nyc_output/
-
-# ---- Environment ----
+# Environment variables and secrets
 .env
+.env.local
+.env.production
+.env.development
 .env.*
 !.env.example
 
-# ---- IDE ----
-.vscode/
+# Python private keys and certificates
+*.pem
+*.key
+*.secret
+*.pub
+id_rsa
+id_ed25519
+*.ppk
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+env/
+venv/
+ENV/
+.env/
+.venv/
+
+# IDE and editor files
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
+.project
+.pydevproject
+.settings/
 
-# ---- Docker ----
-docker-compose.override.yml
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
 
-# ---- Misc ----
-*.log
-tmp/
-.cache/
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Distribution / packaging
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+nosetests.xml
+coverage.xml
+*.cover
+
+# Environments
+*.env
+*.local
