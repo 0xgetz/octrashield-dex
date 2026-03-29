@@ -1,6 +1,6 @@
 # OctraShield DEX
 
-[![CI](https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml/badge.svg)](https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml)
+[![CI](https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml/badge.svg)(https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License: MIT-yellow.svg)](LICENSE)
 [![Built on Octra Network](https://img.shields.io/badge/Built%20on-Octra%20Network-blue)](https://octra.org)
 [![Rust nightly](https://img.shields.io/badge/rust-nightly--2024--12--01-orange)](https://rustup.rs)
