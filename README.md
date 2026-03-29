@@ -1,7 +1,7 @@
 # OctraShield DEX
 
 [![CI](https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml/badge.svg)](https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License: MIT-yellow.svg)](LICENSE)
 [![Built on Octra Network](https://img.shields.io/badge/Built%20on-Octra%20Network-blue)](https://octra.org)
 [![Rust nightly](https://img.shields.io/badge/rust-nightly--2024--12--01-orange)](https://rustup.rs)
 
@@ -148,6 +148,52 @@ const { amountOut } = await sdk.router.swapExactInput({
   deadline: Date.now() / 1000 + 1200,
 });
 ```
+
+---
+
+## Development & Testing
+
+For development and testing without real FHE dependencies, OctraShield provides **mock packages** that offer fast, deterministic implementations of all SDK components:
+
+- **`mock-octra-hfhe`** — Drop-in replacement for HFHE encryption using simple XOR operations
+- **`mock-octra-sdk`** — Mock implementations of all contract clients (Factory, Pair, Router, ShieldToken, AIEngine)
+
+These packages are **API-compatible** with the real SDK but use simplified operations for fast, reproducible testing — no network calls or heavy cryptographic operations required.
+
+### Quick Start with Mocks
+
+```bash
+# Run the test suite
+./scripts/test-mock.sh
+
+# Or build and run examples manually
+pnpm build
+npx tsx examples/test-mock-implementation.ts
+npx tsx examples/swap-flow-example.ts
+```
+
+### Using Mock Packages in Your Code
+
+```typescript
+import { generateKeyPair, encrypt, decrypt } from 'mock-octra-hfhe';
+import { MockFactoryClient, MockRouterClient } from 'mock-octra-sdk';
+
+// Generate a keypair (instant, no crypto)
+const keypair = await generateKeyPair();
+
+// Encrypt a value (simple XOR, returns immediately)
+const ciphertext = await encrypt(1_000_000n, keypair.publicKey);
+
+// Decrypt (deterministic, no network)
+const plaintext = await decrypt(ciphertext, keypair.secretKey);
+console.log(plaintext.value); // 1000000n
+
+// Use mock clients for testing
+const factory = new MockFactoryClient();
+const pools = await factory.getAllPools(); // Returns mock pool data
+```
+
+For detailed documentation, see [MOCK_IMPLEMENTATION_GUIDE.md](MOCK_IMPLEMENTATION_GUIDE.md).
 
 ---
 

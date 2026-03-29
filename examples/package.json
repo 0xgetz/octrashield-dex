@@ -1,0 +1,17 @@
+{
+  "name": "@octrashield/examples",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "basic-mock": "tsx basic-mock-example.ts"
+  },
+  "dependencies": {
+    "mock-octra-hfhe": "workspace:*",
+    "mock-octra-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.5.0"
+  }
+}

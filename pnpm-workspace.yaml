@@ -1,3 +1,6 @@
 packages:
   - sdk
   - app
+  - examples
+  - mock-octra-hfhe
+  - mock-octra-sdk
