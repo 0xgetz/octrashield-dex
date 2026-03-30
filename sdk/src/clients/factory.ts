@@ -29,8 +29,16 @@ import { sortTokens } from '../utils/encoding.js';
 export class FactoryClient {
   constructor(
     private readonly tx: TransactionBuilder,
+    private readonly keyPair: import('../core/types.js').HfheKeyPair,
     private readonly factoryAddress: Address
   ) {}
+
+  /**
+   * Get the factory contract address.
+   */
+  get address(): Address {
+    return this.factoryAddress;
+  }
 
   // --------------------------------------------------------------------------
   // View Methods
@@ -40,6 +48,15 @@ export class FactoryClient {
    * Get pool info for a specific token pair and fee tier.
    * Returns null if no pool exists.
    */
+  async getPair(tokenA: Address, tokenB: Address): Promise<Address> {
+    const [token0, token1] = sortTokens(tokenA, tokenB);
+    return this.tx.query<Address>(
+      this.factoryAddress,
+      'view_get_pool',
+      [token0, token1, 0]
+    );
+  }
+
   async getPool(
     tokenA: Address,
     tokenB: Address,
@@ -48,7 +65,7 @@ export class FactoryClient {
     const [token0, token1] = sortTokens(tokenA, tokenB);
 
     try {
-      const pool = await this.tx.viewCall<PoolInfo | null>(
+      const pool = await this.tx.query<PoolInfo | null>(
         this.factoryAddress,
         'view_get_pool',
         [token0, token1, feeTier]
@@ -62,11 +79,18 @@ export class FactoryClient {
   /**
    * Get all registered pools.
    */
+  async allPairs(): Promise<Address[]> {
+    return this.tx.query<Address[]>(
+      this.factoryAddress,
+      'view_all_pools'
+    );
+  }
+
   async getAllPools(
     offset: number = 0,
     limit: number = 50
   ): Promise<Paginated<PoolInfo>> {
-    return this.tx.viewCall<Paginated<PoolInfo>>(
+    return this.tx.query<Paginated<PoolInfo>>(
       this.factoryAddress,
       'view_all_pools',
       [offset, limit]
@@ -77,7 +101,7 @@ export class FactoryClient {
    * Get all pools involving a specific token.
    */
   async getPoolsForToken(token: Address): Promise<PoolInfo[]> {
-    return this.tx.viewCall<PoolInfo[]>(
+    return this.tx.query<PoolInfo[]>(
       this.factoryAddress,
       'view_pools_for_token',
       [token]
@@ -87,8 +111,15 @@ export class FactoryClient {
   /**
    * Get the total number of pools.
    */
+  async pairCount(): Promise<bigint> {
+    return this.tx.query<bigint>(
+      this.factoryAddress,
+      'view_pool_count'
+    );
+  }
+
   async getPoolCount(): Promise<number> {
-    return this.tx.viewCall<number>(
+    return this.tx.query<number>(
       this.factoryAddress,
       'view_pool_count'
     );
@@ -98,7 +129,7 @@ export class FactoryClient {
    * Get all available fee tiers and their tick spacings.
    */
   async getFeeTiers(): Promise<typeof FEE_TIERS> {
-    return this.tx.viewCall<typeof FEE_TIERS>(
+    return this.tx.query<typeof FEE_TIERS>(
       this.factoryAddress,
       'view_all_fee_tiers'
     );
@@ -108,7 +139,7 @@ export class FactoryClient {
    * Get the factory owner address.
    */
   async getOwner(): Promise<Address> {
-    return this.tx.viewCall<Address>(
+    return this.tx.query<Address>(
       this.factoryAddress,
       'view_owner'
     );
@@ -137,6 +168,19 @@ export class FactoryClient {
    * @returns Transaction receipt with PoolCreated event
    * @throws PoolAlreadyExists if the pool already exists
    */
+  async createPair(
+    tokenA: Address,
+    tokenB: Address,
+    feeTier: number
+  ): Promise<TransactionReceipt> {
+    const [token0, token1] = sortTokens(tokenA, tokenB);
+    return this.tx.execute(
+      this.factoryAddress,
+      'call_create_pool',
+      [token0, token1, feeTier, 0n]
+    );
+  }
+
   async createPool(params: CreatePoolParams): Promise<TransactionReceipt> {
     const [token0, token1] = sortTokens(params.token0, params.token1);
 
@@ -150,7 +194,7 @@ export class FactoryClient {
       );
     }
 
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.factoryAddress,
       'call_create_pool',
       [token0, token1, params.feeTier, params.initialSqrtPrice]
@@ -164,7 +208,7 @@ export class FactoryClient {
     feeBps: number,
     tickSpacing: number
   ): Promise<TransactionReceipt> {
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.factoryAddress,
       'call_enable_fee_tier',
       [feeBps, tickSpacing]
@@ -175,7 +219,7 @@ export class FactoryClient {
    * Transfer factory ownership (owner only).
    */
   async transferOwnership(newOwner: Address): Promise<TransactionReceipt> {
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.factoryAddress,
       'call_transfer_ownership',
       [newOwner]

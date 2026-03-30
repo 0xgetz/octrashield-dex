@@ -34,6 +34,56 @@ export class ShieldTokenClient {
     private readonly tokenAddress: Address
   ) {}
 
+  /**
+   * Get the token contract address.
+   */
+  get address(): Address {
+    return this.tokenAddress;
+  }
+
+  async balanceOf(holder: Address): Promise<EncryptedU64> {
+    return this.tx.query<EncryptedU64>(
+      this.tokenAddress,
+      'view_balance_of',
+      [holder]
+    );
+  }
+
+  async allowance(owner: Address, spender: Address): Promise<EncryptedU64> {
+    return this.tx.query<EncryptedU64>(
+      this.tokenAddress,
+      'view_allowance',
+      [owner, spender]
+    );
+  }
+
+  async mint(to: Address, amount: bigint): Promise<TransactionReceipt> {
+    const encryptedAmount = encrypt(amount, this.keyPair);
+    return this.tx.execute(
+      this.tokenAddress,
+      'call_mint',
+      [to, encryptedAmount.ciphertext]
+    );
+  }
+
+  async burn(amount: bigint): Promise<TransactionReceipt> {
+    const encryptedAmount = encrypt(amount, this.keyPair);
+    return this.tx.execute(
+      this.tokenAddress,
+      'call_burn',
+      [encryptedAmount.ciphertext]
+    );
+  }
+
+  async totalSupply(): Promise<EncryptedU64> {
+    return this.tx.query<EncryptedU64>(
+      this.tokenAddress,
+      'view_total_supply'
+    );
+  }
+
+  //
+
   // --------------------------------------------------------------------------
   // View Methods (read-only, no signature)
   // --------------------------------------------------------------------------
@@ -43,10 +93,10 @@ export class ShieldTokenClient {
    */
   async getTokenInfo(): Promise<TokenInfo> {
     const [name, symbol, decimals, totalSupply] = await Promise.all([
-      this.tx.viewCall<string>(this.tokenAddress, 'view_name'),
-      this.tx.viewCall<string>(this.tokenAddress, 'view_symbol'),
-      this.tx.viewCall<number>(this.tokenAddress, 'view_decimals'),
-      this.tx.viewCall<EncryptedU64>(this.tokenAddress, 'view_total_supply'),
+      this.tx.query<string>(this.tokenAddress, 'view_name'),
+      this.tx.query<string>(this.tokenAddress, 'view_symbol'),
+      this.tx.query<number>(this.tokenAddress, 'view_decimals'),
+      this.tx.query<EncryptedU64>(this.tokenAddress, 'view_total_supply'),
     ]);
 
     return {
@@ -63,7 +113,7 @@ export class ShieldTokenClient {
    * Only the address holder can decrypt the actual value.
    */
   async getBalance(holder: Address): Promise<TokenBalance> {
-    const encryptedBalance = await this.tx.viewCall<EncryptedU64>(
+    const encryptedBalance = await this.tx.query<EncryptedU64>(
       this.tokenAddress,
       'view_balance_of',
       [holder]
@@ -80,7 +130,7 @@ export class ShieldTokenClient {
    * Get the encrypted allowance for a spender.
    */
   async getAllowance(owner: Address, spender: Address): Promise<TokenAllowance> {
-    const encryptedAllowance = await this.tx.viewCall<EncryptedU64>(
+    const encryptedAllowance = await this.tx.query<EncryptedU64>(
       this.tokenAddress,
       'view_allowance',
       [owner, spender]
@@ -130,7 +180,7 @@ export class ShieldTokenClient {
   async transfer(to: Address, amount: bigint): Promise<TransactionReceipt> {
     const encryptedAmount = encrypt(amount, this.keyPair);
 
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.tokenAddress,
       'call_transfer',
       [to, encryptedAmount.ciphertext]
@@ -147,7 +197,7 @@ export class ShieldTokenClient {
   async approve(spender: Address, amount: bigint): Promise<TransactionReceipt> {
     const encryptedAmount = encrypt(amount, this.keyPair);
 
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.tokenAddress,
       'call_approve',
       [spender, encryptedAmount.ciphertext]
@@ -169,7 +219,7 @@ export class ShieldTokenClient {
   ): Promise<TransactionReceipt> {
     const encryptedAmount = encrypt(amount, this.keyPair);
 
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.tokenAddress,
       'call_transfer_from',
       [from, to, encryptedAmount.ciphertext]
@@ -182,7 +232,7 @@ export class ShieldTokenClient {
   async increaseAllowance(spender: Address, addedAmount: bigint): Promise<TransactionReceipt> {
     const encryptedAmount = encrypt(addedAmount, this.keyPair);
 
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.tokenAddress,
       'call_increase_allowance',
       [spender, encryptedAmount.ciphertext]
@@ -195,7 +245,7 @@ export class ShieldTokenClient {
   async decreaseAllowance(spender: Address, subtractedAmount: bigint): Promise<TransactionReceipt> {
     const encryptedAmount = encrypt(subtractedAmount, this.keyPair);
 
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.tokenAddress,
       'call_decrease_allowance',
       [spender, encryptedAmount.ciphertext]

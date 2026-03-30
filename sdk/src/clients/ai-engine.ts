@@ -62,6 +62,13 @@ export class AIEngineClient {
     private readonly aiAddress: Address
   ) {}
 
+  /**
+   * Get the AI Engine contract address.
+   */
+  get address(): Address {
+    return this.aiAddress;
+  }
+
   // --------------------------------------------------------------------------
   // View Methods — Dynamic Fees
   // --------------------------------------------------------------------------
@@ -71,7 +78,7 @@ export class AIEngineClient {
    * The AI analyzes encrypted volatility and volume to recommend fee changes.
    */
   async getDynamicFee(poolId: PoolId): Promise<DynamicFee> {
-    return this.tx.viewCall<DynamicFee>(
+    return this.tx.query<DynamicFee>(
       this.aiAddress,
       'view_dynamic_fee',
       [poolId]
@@ -82,7 +89,7 @@ export class AIEngineClient {
    * Get dynamic fees for multiple pools at once.
    */
   async getDynamicFees(poolIds: readonly PoolId[]): Promise<DynamicFee[]> {
-    return this.tx.viewCall<DynamicFee[]>(
+    return this.tx.query<DynamicFee[]>(
       this.aiAddress,
       'view_dynamic_fees_batch',
       [poolIds]
@@ -108,7 +115,7 @@ export class AIEngineClient {
    * The AI computes EMA volatility from encrypted trade data.
    */
   async getVolatility(poolId: PoolId): Promise<VolatilityData> {
-    return this.tx.viewCall<VolatilityData>(
+    return this.tx.query<VolatilityData>(
       this.aiAddress,
       'view_volatility',
       [poolId]
@@ -141,7 +148,7 @@ export class AIEngineClient {
    * The AI monitors for sandwich attacks, frontrunning, and manipulation.
    */
   async getMevAlerts(poolId: PoolId): Promise<MevAlert[]> {
-    return this.tx.viewCall<MevAlert[]>(
+    return this.tx.query<MevAlert[]>(
       this.aiAddress,
       'view_mev_alerts',
       [poolId]
@@ -157,7 +164,7 @@ export class AIEngineClient {
     score: number;
     recommendation: MevRecommendation;
   }> {
-    return this.tx.viewCall(
+    return this.tx.query(
       this.aiAddress,
       'view_check_mev',
       [txData]
@@ -174,7 +181,7 @@ export class AIEngineClient {
     blockedAttacks: number;
   }> {
     const signer = this.tx.getSignerAddress();
-    return this.tx.viewCall(
+    return this.tx.query(
       this.aiAddress,
       'view_mev_protection_status',
       [signer]
@@ -190,7 +197,7 @@ export class AIEngineClient {
    * The AI analyzes market conditions and recommends tick range adjustments.
    */
   async getRebalanceSuggestions(positionId: PositionId): Promise<RebalanceSuggestion[]> {
-    return this.tx.viewCall<RebalanceSuggestion[]>(
+    return this.tx.query<RebalanceSuggestion[]>(
       this.aiAddress,
       'view_rebalance_suggestions',
       [positionId]
@@ -202,7 +209,7 @@ export class AIEngineClient {
    */
   async getMyRebalanceSuggestions(): Promise<RebalanceSuggestion[]> {
     const signer = this.tx.getSignerAddress();
-    return this.tx.viewCall<RebalanceSuggestion[]>(
+    return this.tx.query<RebalanceSuggestion[]>(
       this.aiAddress,
       'view_rebalance_suggestions_for_owner',
       [signer]
@@ -218,7 +225,7 @@ export class AIEngineClient {
    * Evaluates liquidity depth, volatility, MEV exposure, and concentration.
    */
   async getPoolRisk(poolId: PoolId): Promise<PoolRiskAssessment> {
-    return this.tx.viewCall<PoolRiskAssessment>(
+    return this.tx.query<PoolRiskAssessment>(
       this.aiAddress,
       'view_pool_risk',
       [poolId]
@@ -229,7 +236,7 @@ export class AIEngineClient {
    * Get the AI engine health and operational status.
    */
   async getHealthStatus(): Promise<AIHealthStatus> {
-    return this.tx.viewCall<AIHealthStatus>(
+    return this.tx.query<AIHealthStatus>(
       this.aiAddress,
       'view_health_status'
     );
@@ -250,7 +257,7 @@ export class AIEngineClient {
     liquidity: bigint,
     volume: bigint
   ): Promise<TransactionReceipt> {
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.aiAddress,
       'call_submit_observation',
       [poolId, tick, liquidity.toString(), volume.toString()]
@@ -262,7 +269,7 @@ export class AIEngineClient {
    * Triggers an immediate fee update cycle.
    */
   async requestFeeUpdate(poolId: PoolId): Promise<TransactionReceipt> {
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.aiAddress,
       'call_request_fee_update',
       [poolId]
@@ -278,7 +285,7 @@ export class AIEngineClient {
     suspectedTxHashes: readonly string[],
     evidence: string
   ): Promise<TransactionReceipt> {
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.aiAddress,
       'call_report_mev',
       [poolId, suspectedTxHashes, evidence]
@@ -296,32 +303,12 @@ export class AIEngineClient {
   async isPoolSafe(poolId: PoolId): Promise<{
     safe: boolean;
     reason: string;
-    riskLevel: string;
-    activeMevAlerts: number;
   }> {
-    const [alerts, risk] = await Promise.all([
-      this.getMevAlerts(poolId),
-      this.getPoolRisk(poolId),
-    ]);
-
-    const highSeverityAlerts = alerts.filter(a => a.suspicionScore >= AI_MEV_THRESHOLD_BPS);
-    const safe = highSeverityAlerts.length === 0 && risk.riskLevel !== 'critical';
-
-    let reason = 'Pool is safe for trading.';
-    if (highSeverityAlerts.length > 0) {
-      reason = `${highSeverityAlerts.length} active MEV alert(s): ${highSeverityAlerts.map(a => a.alertType).join(', ')}`;
-    } else if (risk.riskLevel === 'critical') {
-      reason = `Pool risk is critical: ${risk.factors.join(', ')}`;
-    } else if (risk.riskLevel === 'high') {
-      reason = `Pool risk is elevated: ${risk.factors.join(', ')}`;
-    }
-
-    return {
-      safe,
-      reason,
-      riskLevel: risk.riskLevel,
-      activeMevAlerts: highSeverityAlerts.length,
-    };
+    return this.tx.query<{ safe: boolean; reason: string }>(
+      this.aiAddress,
+      'view_pool_safety',
+      [poolId]
+    );
   }
 
   /**

@@ -49,6 +49,87 @@ export class RouterClient {
     private readonly routerAddress: Address
   ) {}
 
+  /**
+   * Get the router contract address.
+   */
+  get address(): Address {
+    return this.routerAddress;
+  }
+
+  async swapExactIn(
+    path: Address[],
+    amountIn: bigint,
+    amountOutMin: bigint,
+    recipient: Address,
+    deadline: bigint
+  ): Promise<TransactionReceipt> {
+    const encAmountIn = encrypt(amountIn, this.keyPair);
+    const encAmountOutMin = encrypt(amountOutMin, this.keyPair);
+    return this.tx.execute(
+      this.routerAddress,
+      'swapExactTokensForTokens',
+      [encAmountIn.ciphertext, encAmountOutMin.ciphertext, path, recipient, deadline]
+    );
+  }
+
+  async swapExactOut(
+    path: Address[],
+    amountOut: bigint,
+    amountInMax: bigint,
+    recipient: Address,
+    deadline: bigint
+  ): Promise<TransactionReceipt> {
+    const encAmountOut = encrypt(amountOut, this.keyPair);
+    const encAmountInMax = encrypt(amountInMax, this.keyPair);
+    return this.tx.execute(
+      this.routerAddress,
+      'swapTokensForExactTokens',
+      [encAmountOut.ciphertext, encAmountInMax.ciphertext, path, recipient, deadline]
+    );
+  }
+
+  async addLiquidity(
+    tokenA: Address,
+    tokenB: Address,
+    amountADesired: bigint,
+    amountBDesired: bigint,
+    amountAMin: bigint,
+    amountBMin: bigint,
+    recipient: Address,
+    deadline: bigint
+  ): Promise<TransactionReceipt> {
+    const encADesired = encrypt(amountADesired, this.keyPair);
+    const encBDesired = encrypt(amountBDesired, this.keyPair);
+    const encAMin = encrypt(amountAMin, this.keyPair);
+    const encBMin = encrypt(amountBMin, this.keyPair);
+    return this.tx.execute(
+      this.routerAddress,
+      'addLiquidity',
+      [tokenA, tokenB, encADesired.ciphertext, encBDesired.ciphertext, encAMin.ciphertext, encBMin.ciphertext, recipient, deadline]
+    );
+  }
+
+  async removeLiquidity(
+    tokenA: Address,
+    tokenB: Address,
+    liquidity: bigint,
+    amountAMin: bigint,
+    amountBMin: bigint,
+    recipient: Address,
+    deadline: bigint
+  ): Promise<TransactionReceipt> {
+    const encLiquidity = encrypt(liquidity, this.keyPair);
+    const encAMin = encrypt(amountAMin, this.keyPair);
+    const encBMin = encrypt(amountBMin, this.keyPair);
+    return this.tx.execute(
+      this.routerAddress,
+      'removeLiquidity',
+      [tokenA, tokenB, encLiquidity.ciphertext, encAMin.ciphertext, encBMin.ciphertext, recipient, deadline]
+    );
+  }
+
+  //
+
   // --------------------------------------------------------------------------
   // Quoting (View Methods — no gas, no signing)
   // --------------------------------------------------------------------------
@@ -67,7 +148,7 @@ export class RouterClient {
     const encAmountIn = encrypt(amountIn, this.keyPair);
     const encodedPath = this.encodeRoutePath(route);
 
-    const result = await this.tx.viewCall<{
+    const result = await this.tx.query<{
       amountOut: string;
       priceImpactBps: number;
       gasEstimate: string;
@@ -101,7 +182,7 @@ export class RouterClient {
     const encAmountOut = encrypt(amountOut, this.keyPair);
     const encodedPath = this.encodeRoutePath(route);
 
-    const result = await this.tx.viewCall<{
+    const result = await this.tx.query<{
       amountIn: string;
       priceImpactBps: number;
       gasEstimate: string;
@@ -144,7 +225,7 @@ export class RouterClient {
     const encMinOut = encrypt(params.amountOutMinimum, this.keyPair);
     const encodedPath = this.encodeRoutePath(params.route);
 
-    const receipt = await this.tx.callTransaction(
+    const receipt = await this.tx.execute(
       this.routerAddress,
       'call_swap_exact_input',
       [
@@ -175,7 +256,7 @@ export class RouterClient {
     const encMaxIn = encrypt(params.amountInMaximum, this.keyPair);
     const encodedPath = this.encodeRoutePath(params.route);
 
-    const receipt = await this.tx.callTransaction(
+    const receipt = await this.tx.execute(
       this.routerAddress,
       'call_swap_exact_output',
       [
@@ -205,7 +286,7 @@ export class RouterClient {
    * @returns Transaction receipt
    */
   async darkPoolSwap(params: DarkPoolSwapParams): Promise<TransactionReceipt> {
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.routerAddress,
       'call_dark_pool_swap',
       [

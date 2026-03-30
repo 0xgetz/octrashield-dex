@@ -10,6 +10,9 @@
 
 import { MIN_TICK, MAX_TICK, FEE_DENOMINATOR, MIN_SQRT_RATIO, MAX_SQRT_RATIO } from '../core/constants.js';
 
+// Re-export constants for convenience
+export { MIN_TICK, MAX_TICK, FEE_DENOMINATOR };
+
 // ============================================================================
 // Tick <-> Price Conversions
 // ============================================================================
@@ -17,9 +20,6 @@ import { MIN_TICK, MAX_TICK, FEE_DENOMINATOR, MIN_SQRT_RATIO, MAX_SQRT_RATIO } f
 /**
  * Convert a tick index to a price.
  * price = 1.0001^tick
- *
- * @param tick - Tick index
- * @returns Price as a floating-point number
  */
 export function tickToPrice(tick: number): number {
   return Math.pow(1.0001, tick);
@@ -28,9 +28,6 @@ export function tickToPrice(tick: number): number {
 /**
  * Convert a price to the nearest tick index.
  * tick = floor(log(price) / log(1.0001))
- *
- * @param price - Price as a floating-point number
- * @returns Nearest tick index
  */
 export function priceToTick(price: number): number {
   if (price <= 0) throw new Error('Price must be positive');
@@ -43,9 +40,26 @@ export function priceToTick(price: number): number {
  * sqrtPrice = sqrt(1.0001^tick) * 2^96
  */
 export function tickToSqrtPriceX96(tick: number): bigint {
-  const price = tickToPrice(tick);
+  const clampedTick = clampTick(tick);
+  
+  // For extreme ticks, return min/max directly
+  if (clampedTick <= MIN_TICK + 1) {
+    return BigInt(Math.floor(MIN_SQRT_RATIO));
+  }
+  if (clampedTick >= MAX_TICK - 1) {
+    return BigInt(Math.floor(MAX_SQRT_RATIO));
+  }
+  
+  const price = tickToPrice(clampedTick);
   const sqrtPrice = Math.sqrt(price);
-  return BigInt(Math.floor(sqrtPrice * 2 ** 96));
+  const Q96 = Math.pow(2, 96);
+  const result = sqrtPrice * Q96;
+  
+  if (!isFinite(result) || isNaN(result)) {
+    return clampedTick < 0 ? BigInt(Math.floor(MIN_SQRT_RATIO)) : BigInt(Math.floor(MAX_SQRT_RATIO));
+  }
+  
+  return BigInt(Math.floor(result));
 }
 
 /**
@@ -77,17 +91,21 @@ export function roundTickUp(tick: number, tickSpacing: number): number {
  * Clamp a tick to the valid range [MIN_TICK, MAX_TICK].
  */
 export function clampTick(tick: number): number {
+  if (isNaN(tick) || tick === Infinity || tick === -Infinity) {
+    return MIN_TICK;
+  }
   return Math.max(MIN_TICK, Math.min(MAX_TICK, tick));
 }
 
 /**
  * Get the tick range for a full-range position (equivalent to CPAMM).
+ * Returns a tuple [tickLower, tickUpper] for destructuring.
  */
-export function fullRangeTicks(tickSpacing: number): { tickLower: number; tickUpper: number } {
-  return {
-    tickLower: roundTickDown(MIN_TICK, tickSpacing),
-    tickUpper: roundTickUp(MAX_TICK, tickSpacing),
-  };
+export function fullRangeTicks(tickSpacing: number): [number, number] {
+  return [
+    roundTickDown(MIN_TICK, tickSpacing),
+    roundTickUp(MAX_TICK, tickSpacing),
+  ] as [number, number];
 }
 
 // ============================================================================
@@ -96,21 +114,18 @@ export function fullRangeTicks(tickSpacing: number): { tickLower: number; tickUp
 
 /**
  * Format a price with appropriate decimal places.
- * Adapts precision based on the price magnitude.
  */
 export function formatPrice(price: number, significantDigits: number = 6): string {
   if (price === 0) return '0';
   if (price >= 1) {
     return price.toFixed(Math.max(0, significantDigits - Math.floor(Math.log10(price)) - 1));
   }
-  // For prices < 1, show enough decimals
   const leadingZeros = -Math.floor(Math.log10(price));
   return price.toFixed(leadingZeros + significantDigits - 1);
 }
 
 /**
  * Format a price as a human-readable ratio.
- * e.g., "1 ETH = 3,245.67 USDC"
  */
 export function formatPriceRatio(
   price: number,
@@ -134,7 +149,6 @@ export function invertPrice(price: number): number {
 
 /**
  * Calculate the minimum output amount after slippage.
- * minOut = expectedOut * (10000 - slippageBps) / 10000
  */
 export function calculateMinOutput(expectedOutput: bigint, slippageBps: number): bigint {
   if (slippageBps < 0 || slippageBps > 10000) {
@@ -145,7 +159,6 @@ export function calculateMinOutput(expectedOutput: bigint, slippageBps: number):
 
 /**
  * Calculate the maximum input amount after slippage (for exact-output swaps).
- * maxIn = expectedIn * (10000 + slippageBps) / 10000
  */
 export function calculateMaxInput(expectedInput: bigint, slippageBps: number): bigint {
   if (slippageBps < 0 || slippageBps > 10000) {
@@ -155,15 +168,15 @@ export function calculateMaxInput(expectedInput: bigint, slippageBps: number): b
 }
 
 /**
- * Calculate price impact in basis points.
- * impact = abs(executionPrice - marketPrice) / marketPrice * 10000
+ * Calculate price impact as a percentage.
+ * impact = abs(executionPrice - marketPrice) / marketPrice * 100
  */
 export function calculatePriceImpact(
   executionPrice: number,
   marketPrice: number
 ): number {
   if (marketPrice === 0) return 0;
-  return Math.abs((executionPrice - marketPrice) / marketPrice) * FEE_DENOMINATOR;
+  return Math.abs((executionPrice - marketPrice) / marketPrice) * 100;
 }
 
 // ============================================================================
@@ -172,10 +185,6 @@ export function calculatePriceImpact(
 
 /**
  * Estimate output amount for a constant-product swap.
- * dy = (y * dx * (10000 - feeBps)) / (x * 10000 + dx * (10000 - feeBps))
- *
- * This is a plaintext estimation for UI quotes.
- * The actual swap uses encrypted arithmetic on-chain.
  */
 export function estimateSwapOutput(
   reserveIn: bigint,
@@ -192,7 +201,6 @@ export function estimateSwapOutput(
 
 /**
  * Estimate input amount needed for a desired output (exact-output).
- * dx = (x * dy * 10000) / ((y - dy) * (10000 - feeBps)) + 1
  */
 export function estimateSwapInput(
   reserveIn: bigint,
@@ -206,15 +214,16 @@ export function estimateSwapInput(
   const feeMultiplier = BigInt(FEE_DENOMINATOR - feeBps);
   const numerator = reserveIn * amountOut * BigInt(FEE_DENOMINATOR);
   const denominator = (reserveOut - amountOut) * feeMultiplier;
-  return numerator / denominator + 1n; // Round up
+  return numerator / denominator + 1n;
 }
 
 /**
  * Calculate the spot price from reserves.
- * price = reserveOut / reserveIn
  */
 export function spotPrice(reserveIn: bigint, reserveOut: bigint): number {
-  if (reserveIn === 0n) return 0;
+  if (reserveIn === 0n) {
+    throw new Error('reserveIn cannot be zero');
+  }
   return Number(reserveOut * 10n ** 18n / reserveIn) / 1e18;
 }
 
@@ -226,6 +235,8 @@ export function spotPrice(reserveIn: bigint, reserveOut: bigint): number {
  * Calculate liquidity amount from token amounts and price range.
  * L = min(amount0 * (sqrtUpper * sqrtLower) / (sqrtUpper - sqrtLower),
  *         amount1 / (sqrtUpper - sqrtLower))
+ *
+ * sqrtPrice values are in Q64.96 format (multiplied by 2^96).
  */
 export function calculateLiquidity(
   amount0: bigint,
@@ -234,61 +245,117 @@ export function calculateLiquidity(
   sqrtPriceUpper: bigint,
   currentSqrtPrice: bigint
 ): bigint {
-  if (sqrtPriceLower >= sqrtPriceUpper) {
-    throw new Error('sqrtPriceLower must be < sqrtPriceUpper');
+  // Ensure sqrtPriceLower < sqrtPriceUpper
+  let lower = sqrtPriceLower;
+  let upper = sqrtPriceUpper;
+  if (lower >= upper) {
+    [lower, upper] = [upper, lower];
+    if (lower === upper) {
+      return 0n;
+    }
   }
 
   const Q96 = 1n << 96n;
+  const diff = upper - lower;
+  if (diff === 0n) return 0n;
 
-  if (currentSqrtPrice <= sqrtPriceLower) {
-    // All token0
-    const denom = ((sqrtPriceUpper - sqrtPriceLower) * Q96) / (sqrtPriceLower * sqrtPriceUpper);
-    return (amount0 * Q96) / denom;
-  } else if (currentSqrtPrice >= sqrtPriceUpper) {
-    // All token1
-    return (amount1 * Q96) / (sqrtPriceUpper - sqrtPriceLower);
+  if (currentSqrtPrice <= lower) {
+    // All token0: L = amount0 * sqrtLower * sqrtUpper / (sqrtUpper - sqrtLower)
+    // Since sqrtPrices are in Q96, we need to handle the scaling properly
+    if (lower === 0n || upper === 0n) {
+      return 0n;
+    }
+    // L = amount0 * (lower * upper) / (diff * Q96)
+    // lower and upper are Q96, so lower*upper is Q192
+    // We need to divide by Q96 to get back to Q96 scale for L
+    const numerator = amount0 * lower * upper;
+    const denominator = diff * Q96;
+    if (denominator === 0n) return 0n;
+    return numerator / denominator;
+  } else if (currentSqrtPrice >= upper) {
+    // All token1: L = amount1 * Q96 / (sqrtUpper - sqrtLower)
+    return (amount1 * Q96) / diff;
   } else {
-    // Both tokens: return the minimum
-    const liq0Denom = ((sqrtPriceUpper - currentSqrtPrice) * Q96) / (currentSqrtPrice * sqrtPriceUpper);
-    const liq0 = (amount0 * Q96) / liq0Denom;
-    const liq1 = (amount1 * Q96) / (currentSqrtPrice - sqrtPriceLower);
+    // Both tokens: split at current price
+    if (currentSqrtPrice === 0n || upper === 0n) {
+      return 0n;
+    }
+    
+    const diff1 = currentSqrtPrice - lower;
+    const diff2 = upper - currentSqrtPrice;
+    if (diff1 === 0n || diff2 === 0n) {
+      return 0n;
+    }
+    
+    // L0 = amount0 * sqrtLower * currentSqrtPrice / (currentSqrtPrice - sqrtLower) / Q96
+    // = amount0 * lower * currentSqrtPrice / (diff1 * Q96)
+    const liq0Denom = diff1 * Q96;
+    const liq0 = (amount0 * lower * currentSqrtPrice) / liq0Denom;
+    
+    // L1 = amount1 * Q96 / (currentSqrtPrice - sqrtLower)
+    const liq1 = (amount1 * Q96) / diff1;
+    
     return liq0 < liq1 ? liq0 : liq1;
   }
 }
 
 /**
  * Calculate token amounts from a liquidity amount and price range.
- * Returns the amount of each token needed to provide the given liquidity.
+ * Returns an array [amount0, amount1] of each token needed to provide the given liquidity.
+ *
+ * sqrtPrice values are in Q64.96 format.
  */
 export function calculateAmountsFromLiquidity(
   liquidity: bigint,
   sqrtPriceLower: bigint,
   sqrtPriceUpper: bigint,
   currentSqrtPrice: bigint
-): { amount0: bigint; amount1: bigint } {
+): [bigint, bigint] {
   const Q96 = 1n << 96n;
 
   let amount0 = 0n;
   let amount1 = 0n;
 
-  if (currentSqrtPrice <= sqrtPriceLower) {
-    // All token0
-    amount0 = (liquidity * (sqrtPriceUpper - sqrtPriceLower) * Q96) / (sqrtPriceLower * sqrtPriceUpper);
-  } else if (currentSqrtPrice >= sqrtPriceUpper) {
-    // All token1
-    amount1 = (liquidity * (sqrtPriceUpper - sqrtPriceLower)) / Q96;
-  } else {
-    // Both tokens
-    amount0 = (liquidity * (sqrtPriceUpper - currentSqrtPrice) * Q96) / (currentSqrtPrice * sqrtPriceUpper);
-    amount1 = (liquidity * (currentSqrtPrice - sqrtPriceLower)) / Q96;
+  // Ensure proper ordering
+  let lower = sqrtPriceLower;
+  let upper = sqrtPriceUpper;
+  if (lower > upper) {
+    [lower, upper] = [upper, lower];
   }
 
-  return { amount0, amount1 };
+  if (currentSqrtPrice <= lower) {
+    // All token0
+    // amount0 = L * (sqrtUpper - sqrtLower) / (sqrtLower * sqrtUpper) * Q96
+    // = L * diff * Q96 / (lower * upper)
+    if (lower !== 0n && upper !== 0n) {
+      const diff = upper - lower;
+      amount0 = (liquidity * diff * Q96) / (lower * upper);
+    }
+  } else if (currentSqrtPrice >= upper) {
+    // All token1
+    // amount1 = L * (sqrtUpper - sqrtLower) / Q96
+    const diff = upper - lower;
+    amount1 = (liquidity * diff) / Q96;
+  } else {
+    // Both tokens
+    if (currentSqrtPrice !== 0n && upper !== 0n) {
+      const diff1 = currentSqrtPrice - lower;
+      const diff2 = upper - currentSqrtPrice;
+      
+      // amount0 = L * (sqrtUpper - currentSqrtPrice) / (currentSqrtPrice * sqrtUpper) * Q96
+      // = L * diff2 * Q96 / (currentSqrtPrice * upper)
+      amount0 = (liquidity * diff2 * Q96) / (currentSqrtPrice * upper);
+      
+      // amount1 = L * (currentSqrtPrice - sqrtLower) / Q96
+      amount1 = (liquidity * diff1) / Q96;
+    }
+  }
+
+  return [amount0, amount1];
 }
 
 /**
  * Estimate the fee earnings for a position over a period.
- * Based on current pool volume and the position's share of in-range liquidity.
  */
 export function estimateFeeEarnings(
   positionLiquidity: bigint,
@@ -308,11 +375,6 @@ export function estimateFeeEarnings(
 
 /**
  * Calculate annualized percentage rate from fee earnings.
- *
- * @param feeEarnings - Total fees earned in the period
- * @param principal - Total value of the position
- * @param days - Number of days in the period
- * @returns APR as a percentage (e.g., 45.2 for 45.2%)
  */
 export function calculateAPR(
   feeEarnings: bigint,

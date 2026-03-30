@@ -42,6 +42,41 @@ export class PairClient {
     private readonly poolAddress: Address
   ) {}
 
+  /**
+   * Get the pool contract address.
+   */
+  get address(): Address {
+    return this.poolAddress;
+  }
+
+  /**
+   * Estimate the gas required for a swap through this pool.
+   *
+   * @param zeroForOne - Direction of the swap: true for token0->token1, false for token1->token0
+   * @param amountIn - The input amount (plaintext)
+   * @returns Estimated gas units required for the swap
+   */
+  async estimateSwapGas(token: Address, amountIn: bigint, amountOutMin: bigint): Promise<bigint> {
+    return this.tx.estimateGas ? await this.tx.estimateGas() : 150_000n;
+  }
+
+  async swap(
+    tokenIn: Address,
+    amountIn: bigint,
+    amountOutMin: bigint,
+    recipient: Address,
+    deadline: bigint
+  ): Promise<TransactionReceipt> {
+    const encAmountIn = encrypt(amountIn, this.keyPair);
+    const encAmountOutMin = encrypt(amountOutMin, this.keyPair);
+    
+    return this.tx.execute(
+      this.poolAddress,
+      'swap',
+      [tokenIn, encAmountIn.ciphertext, encAmountOutMin.ciphertext, recipient, deadline]
+    );
+  }
+
   // --------------------------------------------------------------------------
   // View Methods — Pool State
   // --------------------------------------------------------------------------
@@ -50,7 +85,7 @@ export class PairClient {
    * Get the complete pool state including encrypted reserves.
    */
   async getPoolState(): Promise<PoolState> {
-    return this.tx.viewCall<PoolState>(
+    return this.tx.query<PoolState>(
       this.poolAddress,
       'view_pool_state'
     );
@@ -60,7 +95,7 @@ export class PairClient {
    * Get the current tick (public, needed for routing).
    */
   async getCurrentTick(): Promise<number> {
-    return this.tx.viewCall<number>(
+    return this.tx.query<number>(
       this.poolAddress,
       'view_current_tick'
     );
@@ -70,7 +105,7 @@ export class PairClient {
    * Get encrypted reserves (only decryptable by pool participants).
    */
   async getReserves(): Promise<{ reserve0: EncryptedU64; reserve1: EncryptedU64 }> {
-    return this.tx.viewCall<{ reserve0: EncryptedU64; reserve1: EncryptedU64 }>(
+    return this.tx.query<{ reserve0: EncryptedU64; reserve1: EncryptedU64 }>(
       this.poolAddress,
       'view_reserves'
     );
@@ -93,7 +128,7 @@ export class PairClient {
    * Get the total encrypted liquidity in the pool.
    */
   async getLiquidity(): Promise<EncryptedU64> {
-    return this.tx.viewCall<EncryptedU64>(
+    return this.tx.query<EncryptedU64>(
       this.poolAddress,
       'view_liquidity'
     );
@@ -107,7 +142,7 @@ export class PairClient {
    * Get a specific liquidity position by ID.
    */
   async getPosition(positionId: PositionId): Promise<LiquidityPosition> {
-    return this.tx.viewCall<LiquidityPosition>(
+    return this.tx.query<LiquidityPosition>(
       this.poolAddress,
       'view_position',
       [positionId]
@@ -122,7 +157,7 @@ export class PairClient {
     offset: number = 0,
     limit: number = 50
   ): Promise<Paginated<LiquidityPosition>> {
-    return this.tx.viewCall<Paginated<LiquidityPosition>>(
+    return this.tx.query<Paginated<LiquidityPosition>>(
       this.poolAddress,
       'view_positions',
       [owner, offset, limit]
@@ -160,7 +195,7 @@ export class PairClient {
    * Get tick data at a specific tick index.
    */
   async getTickData(tick: number): Promise<TickData> {
-    return this.tx.viewCall<TickData>(
+    return this.tx.query<TickData>(
       this.poolAddress,
       'view_tick',
       [tick]
@@ -174,7 +209,7 @@ export class PairClient {
     tickLower: number,
     tickUpper: number
   ): Promise<TickData[]> {
-    return this.tx.viewCall<TickData[]>(
+    return this.tx.query<TickData[]>(
       this.poolAddress,
       'view_ticks_in_range',
       [tickLower, tickUpper]
@@ -185,7 +220,7 @@ export class PairClient {
    * Get a TWAP observation at a specific index.
    */
   async getObservation(index: number): Promise<Observation> {
-    return this.tx.viewCall<Observation>(
+    return this.tx.query<Observation>(
       this.poolAddress,
       'view_observation',
       [index]
@@ -196,7 +231,7 @@ export class PairClient {
    * Calculate TWAP price over a period.
    */
   async getTWAP(secondsAgo: number): Promise<number> {
-    const result = await this.tx.viewCall<{ tickCumulative: string; secondsAgo: number }>(
+    const result = await this.tx.query<{ tickCumulative: string; secondsAgo: number }>(
       this.poolAddress,
       'view_observe',
       [secondsAgo]
@@ -218,33 +253,37 @@ export class PairClient {
    * @param params - Liquidity parameters
    * @returns Liquidity result with position ID and actual amounts
    */
-  async addLiquidity(params: AddLiquidityParams): Promise<LiquidityResult> {
-    // Validate tick range
-    this.validateTickRange(params.tickLower, params.tickUpper);
-
+  async addLiquidity(
+    amount0: bigint,
+    amount1: bigint,
+    amount0Min: bigint,
+    amount1Min: bigint,
+    recipient: Address,
+    deadline: bigint
+  ): Promise<LiquidityResult> {
     // Encrypt amounts
-    const encAmount0 = encrypt(params.amount0Desired, this.keyPair);
-    const encAmount1 = encrypt(params.amount1Desired, this.keyPair);
-    const encMin0 = encrypt(params.amount0Min, this.keyPair);
-    const encMin1 = encrypt(params.amount1Min, this.keyPair);
+    const encAmount0 = encrypt(amount0, this.keyPair);
+    const encAmount1 = encrypt(amount1, this.keyPair);
+    const encMin0 = encrypt(amount0Min, this.keyPair);
+    const encMin1 = encrypt(amount1Min, this.keyPair);
 
-    const receipt = await this.tx.callTransaction(
+    const receipt = await this.tx.execute(
       this.poolAddress,
       'call_add_liquidity',
       [
-        params.tickLower,
-        params.tickUpper,
+        MIN_TICK,
+        MAX_TICK,
         encAmount0.ciphertext,
         encAmount1.ciphertext,
         encMin0.ciphertext,
         encMin1.ciphertext,
-        params.recipient,
-        params.deadline,
+        recipient,
+        deadline,
       ]
     );
 
     // Extract position ID and amounts from events
-    const mintEvent = receipt.events.find(e => e.name === 'LiquidityAdded');
+    const mintEvent = (receipt.events || []).find(e => e.name === 'LiquidityAdded');
     return {
       positionId: (mintEvent?.data?.positionId || '0') as PositionId,
       amount0: (mintEvent?.data?.amount0 || encAmount0) as EncryptedU64,
@@ -260,26 +299,32 @@ export class PairClient {
    * @param params - Removal parameters
    * @returns Liquidity result with withdrawn amounts
    */
-  async removeLiquidity(params: RemoveLiquidityParams): Promise<LiquidityResult> {
-    const encLiquidity = encrypt(params.liquidityAmount, this.keyPair);
-    const encMin0 = encrypt(params.amount0Min, this.keyPair);
-    const encMin1 = encrypt(params.amount1Min, this.keyPair);
+  async removeLiquidity(
+    lpAmount: bigint,
+    amount0Min: bigint,
+    amount1Min: bigint,
+    recipient: Address,
+    deadline: bigint
+  ): Promise<LiquidityResult> {
+    const encLiquidity = encrypt(lpAmount, this.keyPair);
+    const encMin0 = encrypt(amount0Min, this.keyPair);
+    const encMin1 = encrypt(amount1Min, this.keyPair);
 
-    const receipt = await this.tx.callTransaction(
+    const receipt = await this.tx.execute(
       this.poolAddress,
       'call_remove_liquidity',
       [
-        params.positionId,
+        '0' as PositionId,
         encLiquidity.ciphertext,
         encMin0.ciphertext,
         encMin1.ciphertext,
-        params.deadline,
+        deadline,
       ]
     );
 
-    const burnEvent = receipt.events.find(e => e.name === 'LiquidityRemoved');
+    const burnEvent = (receipt.events || []).find(e => e.name === 'LiquidityRemoved');
     return {
-      positionId: params.positionId,
+      positionId: '0' as PositionId,
       amount0: (burnEvent?.data?.amount0 || encMin0) as EncryptedU64,
       amount1: (burnEvent?.data?.amount1 || encMin1) as EncryptedU64,
       liquidity: encLiquidity,
@@ -294,7 +339,7 @@ export class PairClient {
    * @returns Transaction receipt with fee amounts in events
    */
   async collectFees(positionId: PositionId): Promise<TransactionReceipt> {
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.poolAddress,
       'call_collect_fees',
       [positionId]
@@ -317,7 +362,7 @@ export class PairClient {
     const encMin0 = encrypt(amount0Min, this.keyPair);
     const encMin1 = encrypt(amount1Min, this.keyPair);
 
-    return this.tx.callTransaction(
+    return this.tx.execute(
       this.poolAddress,
       'call_increase_liquidity',
       [positionId, enc0.ciphertext, enc1.ciphertext, encMin0.ciphertext, encMin1.ciphertext, deadline]

@@ -120,16 +120,20 @@ describe('findBestRoute', () => {
   it('direct: WETH -> USDC single hop', () => {
     const route = findBestRoute(pools, WETH, USDC, 1_000_000_000n);
     expect(route).not.toBeNull();
-    expect(route!.hops.length).toBe(1);
-    expect(route!.hops[0].poolId).toBe('pool-weth-usdc');
-    expect(route!.outputAmount > 0n).toBe(true);
+    if (route) {
+      expect(route.hops.length).toBe(1);
+      expect(route.hops[0].poolId).toBe('pool-weth-usdc');
+      expect(route.estimatedOutput > 0n).toBe(true);
+    }
   });
 
   it('multi-hop: LINK -> USDC through WETH', () => {
     const route = findBestRoute(pools, LINK, USDC, 10_000_000_000n);
     expect(route).not.toBeNull();
-    expect(route!.hops.length).toBeGreaterThanOrEqual(2);
-    expect(route!.outputAmount > 0n).toBe(true);
+    if (route) {
+      expect(route.hops.length).toBeGreaterThanOrEqual(2);
+      expect(route.estimatedOutput > 0n).toBe(true);
+    }
   });
 
   it('no route: disconnected token', () => {
@@ -157,13 +161,15 @@ describe('findBestRoute', () => {
     const route = findBestRoute(pools, WETH, DAI, 1_000_000_000n);
     expect(route).not.toBeNull();
     // The best route should have been selected (higher output)
-    expect(route!.outputAmount > 0n).toBe(true);
+    if (route) {
+      expect(route.estimatedOutput > 0n).toBe(true);
+    }
   });
 
   it('zero input amount', () => {
     const route = findBestRoute(pools, WETH, USDC, 0n);
     if (route) {
-      expect(route.outputAmount).toBe(0n);
+      expect(route.estimatedOutput).toBe(0n);
     }
   });
 });
@@ -176,17 +182,18 @@ describe('Route Encoding', () => {
   it('encodeRoute / decodeRoute round-trip', () => {
     const route = findBestRoute(pools, WETH, USDC, 1_000_000_000n);
     expect(route).not.toBeNull();
+    if (!route) return;
 
-    const encoded = encodeRoute(route!);
+    const encoded = encodeRoute(route);
     expect(typeof encoded).toBe('string');
     expect(encoded.length).toBeGreaterThan(0);
 
     const decoded = decodeRoute(encoded);
-    expect(decoded.hops.length).toBe(route!.hops.length);
+    expect(decoded.hops.length).toBe(route.hops.length);
     for (let i = 0; i < decoded.hops.length; i++) {
-      expect(decoded.hops[i].poolId).toBe(route!.hops[i].poolId);
-      expect(decoded.hops[i].tokenIn).toBe(route!.hops[i].tokenIn);
-      expect(decoded.hops[i].tokenOut).toBe(route!.hops[i].tokenOut);
+      expect(decoded.hops[i].poolId).toBe(route.hops[i].poolId);
+      expect(decoded.hops[i].tokenIn).toBe(route.hops[i].tokenIn);
+      expect(decoded.hops[i].tokenOut).toBe(route.hops[i].tokenOut);
     }
   });
 
@@ -213,8 +220,9 @@ describe('Route Scoring', () => {
   it('scoreRoute: returns numeric score', () => {
     const route = findBestRoute(pools, WETH, USDC, 1_000_000_000n);
     expect(route).not.toBeNull();
+    if (!route) return;
 
-    const score = scoreRoute(route!);
+    const score = scoreRoute(route);
     expect(typeof score).toBe('number');
     expect(score).toBeGreaterThan(0);
   });
@@ -225,7 +233,7 @@ describe('Route Scoring', () => {
     if (!route1 || !route2) return;
 
     // Larger trade should have higher absolute output
-    expect(route2.outputAmount > route1.outputAmount).toBe(true);
+    expect(route2.estimatedOutput > route1.estimatedOutput).toBe(true);
   });
 
   it('scoreRoute: fewer hops preferred when output similar', () => {

@@ -415,6 +415,29 @@ export class TransactionBuilder {
 
   // --------------------------------------------------------------------------
   // Receipt Polling
+
+  /**
+   * Alias for viewCall — execute a read-only query.
+   */
+  async query<T>(
+    contract: Address,
+    method: string,
+    args: unknown[] = []
+  ): Promise<T> {
+    return this.viewCall<T>(contract, method, args);
+  }
+
+  /**
+   * Alias for callTransaction — execute a state-mutating transaction.
+   */
+  async execute(
+    contract: Address,
+    method: string,
+    args: unknown[] = [],
+    deadlineSeconds?: number
+  ): Promise<TransactionReceipt> {
+    return this.callTransaction(contract, method, args, deadlineSeconds);
+  }
   // --------------------------------------------------------------------------
 
   /**

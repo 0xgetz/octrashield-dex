@@ -41,6 +41,7 @@ interface Edge {
   readonly pool: PoolNode;
   readonly tokenIn: Address;
   readonly tokenOut: Address;
+  readonly to: Address;
   readonly estimatedPrice: number;
   readonly feeBps: number;
 }
@@ -109,6 +110,7 @@ export class SwapRouter {
         pool: node,
         tokenIn: pool.token0,
         tokenOut: pool.token1,
+        to: pool.token1,
         estimatedPrice: 1, // Updated from tick data
         feeBps,
       });
@@ -118,6 +120,7 @@ export class SwapRouter {
         pool: node,
         tokenIn: pool.token1,
         tokenOut: pool.token0,
+        to: pool.token0,
         estimatedPrice: 1, // Updated from tick data
         feeBps,
       });
@@ -398,4 +401,219 @@ export function comparRoutes(a: SwapRoute, b: SwapRoute): SwapRoute {
 
 function truncate(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+// ============================================================================
+// Standalone Functions for Testing
+// ============================================================================
+
+/** Maximum number of hops allowed in a route. */
+export const MAX_HOPS = MAX_SWAP_HOPS;
+
+/**
+ * Build a graph from an array of mock pool data.
+ * Used for testing and simple routing scenarios.
+ */
+export function buildGraph(pools: readonly any[]): PoolGraph {
+  const graph: PoolGraph = new Map();
+
+  for (const pool of pools) {
+    const token0 = pool.token0 as string;
+    const token1 = pool.token1 as string;
+    const poolId = (pool.id || pool.poolId) as string;
+
+    // Add bidirectional edges
+    if (!graph.has(token0)) graph.set(token0, []);
+    if (!graph.has(token1)) graph.set(token1, []);
+
+    const feeBps = pool.feeBps || 30;
+
+    // Create a proper PoolNode
+    const node: PoolNode = {
+      poolId: poolId as PoolId,
+      token0: pool.token0,
+      token1: pool.token1,
+      feeTier: pool.feeTier !== undefined ? pool.feeTier : 0,
+      currentTick: 0,
+      isActive: true,
+    };
+
+    graph.get(token0)!.push({
+      pool: node,
+      tokenIn: pool.token0,
+      tokenOut: pool.token1,
+      to: pool.token1,
+      estimatedPrice: 1,
+      feeBps,
+    });
+
+    graph.get(token1)!.push({
+      pool: node,
+      tokenIn: pool.token1,
+      tokenOut: pool.token0,
+      to: pool.token0,
+      estimatedPrice: 1,
+      feeBps,
+    });
+  }
+
+  return graph;
+}
+
+/**
+ * Find the best route between two tokens using a simple graph.
+ * This is a standalone function for testing compatibility.
+ */
+export function findBestRoute(
+  pools: readonly any[],
+  tokenIn: Address,
+  tokenOut: Address,
+  amountIn: bigint
+): SwapRoute | null {
+  if ((tokenIn as string) === (tokenOut as string)) {
+    return null; // Same token, no route needed
+  }
+
+  const graph = buildGraph(pools);
+  const candidates: RouteCandidate[] = [];
+  const visited = new Set<string>();
+
+  // DFS to find all routes
+  function dfs(
+    current: string,
+    target: string,
+    currentAmount: number,
+    remainingHops: number,
+    path: Edge[],
+    totalFeeBps: number
+  ): void {
+    if (current === target && path.length > 0) {
+      candidates.push({
+        hops: [...path],
+        estimatedOutput: currentAmount,
+        totalFeeBps,
+        totalPriceImpact: 0,
+      });
+      return;
+    }
+
+    if (remainingHops === 0) return;
+
+    const edges = graph.get(current);
+    if (!edges) return;
+
+    for (const edge of edges) {
+      const poolKey = edge.pool.poolId as string;
+      if (visited.has(poolKey)) continue;
+
+      const feeMultiplier = (FEE_DENOMINATOR - edge.feeBps) / FEE_DENOMINATOR;
+      const outputAmount = currentAmount * edge.estimatedPrice * feeMultiplier;
+
+      if (outputAmount <= 0) continue;
+
+      visited.add(poolKey);
+      path.push(edge);
+
+      dfs(
+        edge.tokenOut as string,
+        target,
+        outputAmount,
+        remainingHops - 1,
+        path,
+        totalFeeBps + edge.feeBps
+      );
+
+      path.pop();
+      visited.delete(poolKey);
+    }
+  }
+
+  dfs(tokenIn as string, tokenOut as string, Number(amountIn), MAX_HOPS, [], 0);
+
+  if (candidates.length === 0) return null;
+
+  // Sort by estimated output (descending)
+  candidates.sort((a, b) => b.estimatedOutput - a.estimatedOutput);
+
+  const best = candidates[0];
+  const hops: SwapHop[] = best.hops.map(edge => ({
+    poolId: edge.pool.poolId,
+    tokenIn: edge.tokenIn,
+    tokenOut: edge.tokenOut,
+    feeTier: edge.pool.feeTier,
+  }));
+
+  return {
+    hops,
+    tokenIn,
+    tokenOut,
+    estimatedOutput: BigInt(Math.floor(best.estimatedOutput)),
+    outputAmount: BigInt(Math.floor(best.estimatedOutput)),
+    priceImpactBps: 0,
+    totalFeeBps: best.totalFeeBps,
+  };
+}
+
+/**
+ * Encode a route as a string for transmission.
+ */
+export function encodeRoute(route: SwapRoute): string {
+  if (route.hops.length === 0) return '';
+
+  const parts = route.hops.map(hop =>
+    `${hop.poolId}:${hop.tokenIn}:${hop.tokenOut}`
+  );
+  return parts.join('|');
+}
+
+/**
+ * Decode a route from an encoded string.
+ */
+export function decodeRoute(encoded: string): SwapRoute {
+  if (!encoded || encoded.length === 0) {
+    throw new Error('Invalid route encoding: empty string');
+  }
+
+  const parts = encoded.split('|');
+  if (parts.length === 0) {
+    throw new Error('Invalid route encoding: no parts');
+  }
+
+  const hops: SwapHop[] = [];
+  for (const part of parts) {
+    const [poolId, tokenIn, tokenOut] = part.split(':');
+    if (!poolId || !tokenIn || !tokenOut) {
+      throw new Error(`Invalid route encoding: malformed part "${part}"`);
+    }
+    hops.push({
+      poolId: poolId as PoolId,
+      tokenIn: tokenIn as Address,
+      tokenOut: tokenOut as Address,
+      feeTier: 0 as FeeTierId,
+    });
+  }
+
+  return {
+    hops,
+    tokenIn: hops[0].tokenIn,
+    tokenOut: hops[hops.length - 1].tokenOut,
+    estimatedOutput: 0n,
+    priceImpactBps: 0,
+    totalFeeBps: 0,
+  };
+}
+
+/**
+ * Score a route based on output amount and number of hops.
+ * Higher score = better route.
+ */
+export function scoreRoute(route: SwapRoute): number {
+  // Base score from output amount
+  const outputScore = Number(route.estimatedOutput);
+  // Penalty for each hop (gas cost)
+  const hopPenalty = route.hops.length * 1000;
+  // Fee penalty
+  const feePenalty = route.totalFeeBps;
+
+  return Math.max(0, outputScore - hopPenalty - feePenalty);
 }

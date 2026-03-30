@@ -323,6 +323,7 @@ export interface SwapRoute {
   readonly tokenIn: Address;
   readonly tokenOut: Address;
   readonly estimatedOutput: bigint;
+  readonly outputAmount: bigint;
   readonly priceImpactBps: number;
   readonly totalFeeBps: number;
 }
