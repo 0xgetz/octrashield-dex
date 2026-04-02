@@ -1,13 +1,52 @@
 # OctraShield DEX
 
-[![CI](https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml/badge.svg)(https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License: MIT-yellow.svg)](LICENSE)
+<div align="center">
+
+[![CI](https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml/badge.svg)](https://github.com/0xgetz/octrashield-dex/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Built on Octra Network](https://img.shields.io/badge/Built%20on-Octra%20Network-blue)](https://octra.org)
 [![Rust nightly](https://img.shields.io/badge/rust-nightly--2024--12--01-orange)](https://rustup.rs)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev/)
 
-**OctraShield DEX** (codename: *ShieldSwap*) is the first fully homomorphic encrypted AMM built natively on [Octra Network](https://octra.org). Every swap, liquidity position, fee accrual, and reserve balance is computed on encrypted data — validators never see plaintext amounts.
+**The first fully homomorphic encrypted AMM built natively on [Octra Network](https://octra.org).**
 
-It combines a hybrid Constant Product + Concentrated Liquidity model (inspired by Uniswap V3) with Octra's **HFHE** (Hypergraph Fully Homomorphic Encryption) cryptosystem, AI-driven dynamic fees, and built-in MEV protection.
+*Every swap, liquidity position, fee accrual, and reserve balance is computed on encrypted data — validators never see plaintext amounts.*
+
+</div>
+
+---
+
+## Table of Contents
+
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Implementation Status](#implementation-status)
+- [Project Structure](#project-structure)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Development](#development)
+  - [SDK Usage](#sdk-usage)
+- [Development & Testing](#development--testing)
+  - [Quick Start with Mocks](#quick-start-with-mocks)
+  - [Using Mock Packages in Your Code](#using-mock-packages-in-your-code)
+- [Tech Stack](#tech-stack)
+- [Testnet](#testnet)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Security](#security)
+- [License](#license)
+
+---
+
+## Key Features
+
+- **🔐 Fully Homomorphic Encrypted AMM** — All on-chain computations (swaps, liquidity, fees, reserves) run on encrypted data via HFHE (Hypergraph Fully Homomorphic Encryption). Validators never see plaintext amounts.
+- **💱 Hybrid AMM Model** — Combines Constant Product × Concentrated Liquidity (inspired by Uniswap V3) for capital-efficient trading.
+- **🤖 AI-Driven Dynamic Fees** — An on-chain AI Fee Engine uses EMA-based volatility tracking to adjust fees in real-time.
+- **🛡️ Built-in MEV Protection** — Detects and mitigates sandwich attacks and front-running patterns at the protocol level.
+- **📦 Full-Stack Implementation** — Ships with Rust smart contracts, a TypeScript SDK with HFHE WASM bindings, and a React frontend.
+- **🧪 Mock Packages for Testing** — Develop and test locally without real FHE dependencies using drop-in mock packages.
 
 ---
 
@@ -92,6 +131,33 @@ All core components are now fully implemented:
 
 ---
 
+## Project Structure
+
+```
+octrashield-dex/
+├── app/                        # Frontend (React + Vite + TailwindCSS)
+│   └── src/
+├── contracts/                  # Rust smart contracts
+│   ├── ai_engine/              # AI Fee Engine (dynamic fees, MEV detection)
+│   ├── factory/                # Pool factory & registry
+│   ├── pair/                   # AMM pair (swap, mint, burn, flash)
+│   ├── router/                 # Multi-hop swap routing
+│   └── shield_token/           # LP token (OCS01, HFHE encrypted)
+├── sdk/                        # TypeScript SDK
+│   └── src/                    # HFHE bindings, OCS01 client, router
+├── mock-octra-hfhe/            # Mock HFHE package (XOR-based, for testing)
+├── mock-octra-sdk/             # Mock SDK clients (Factory, Pair, Router, etc.)
+├── docker/                     # Docker config for local Octra devnet
+├── examples/                   # Usage examples & test scripts
+├── scripts/                    # Build, test, and deployment scripts
+├── deploy.py                   # Deployment script
+├── Makefile                    # Build & dev automation
+├── pnpm-workspace.yaml         # pnpm monorepo config
+└── rust-toolchain.toml         # Rust nightly toolchain config
+```
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -144,7 +210,7 @@ const { amountOut } = await sdk.router.swapExactInput({
   tokenIn:  'octABC...token0',
   tokenOut: 'octXYZ...token1',
   amountIn,
-  slippageBps: 50,    // 0.5%
+  slippageBps: 50,      // 0.5%
   deadline: Date.now() / 1000 + 1200,
 });
 ```
@@ -228,10 +294,35 @@ For detailed documentation, see [MOCK_IMPLEMENTATION_GUIDE.md](MOCK_IMPLEMENTATI
 
 ## Documentation
 
-- [Phase 0 — Architecture & Research](PHASE0_ARCHITECTURE.md)
-- [Phase 1 — Smart Contracts](PHASE1_CONTRACTS.md)
-- [Phase 2 — TypeScript SDK](PHASE2_SDK.md)
-- [Phase 3 — Frontend](PHASE3_FRONTEND.md)
+| Document | Description |
+|---|---|
+| [PHASE0_ARCHITECTURE.md](PHASE0_ARCHITECTURE.md) | Architecture & Research |
+| [PHASE1_CONTRACTS.md](PHASE1_CONTRACTS.md) | Smart Contracts |
+| [PHASE2_SDK.md](PHASE2_SDK.md) | TypeScript SDK |
+| [PHASE3_FRONTEND.md](PHASE3_FRONTEND.md) | Frontend |
+| [MOCK_IMPLEMENTATION_GUIDE.md](MOCK_IMPLEMENTATION_GUIDE.md) | Mock packages guide |
+| [MOCK_PACKAGES_README.md](MOCK_PACKAGES_README.md) | Mock packages overview |
+| [SDK_API_ANALYSIS.md](SDK_API_ANALYSIS.md) | SDK API analysis |
+
+---
+
+## Contributing
+
+Contributions are welcome! Here's how to get started:
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/my-feature`
+3. **Commit** your changes: `git commit -m 'feat: add my feature'`
+4. **Push** to the branch: `git push origin feature/my-feature`
+5. **Open** a Pull Request
+
+Please ensure your code passes all existing tests (`make test-contracts` and `pnpm test`) before submitting a PR.
+
+---
+
+## Security
+
+If you discover a security vulnerability, please **do not** open a public issue. Instead, report it responsibly by contacting the maintainers directly.
 
 ---
 
