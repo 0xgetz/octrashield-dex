@@ -48,7 +48,9 @@ export interface OctraShieldContext {
   /** Connected wallet address */
   readonly address: Address | null;
   /** Chain ID of the connected network */
-  readonly chainId: number | null;
+  // TODO: Octra Network does not use numeric chain IDs (not EVM-compatible).
+  // chainId is string "v3.0.0-irmin" from node_status, not a number.
+  readonly chainId: string | null;
   /** HFHE key pair for encryption/decryption */
   readonly keyPair: HfheKeyPair | null;
   /** Transaction builder for contract interactions */
@@ -84,7 +86,8 @@ export function useOctraShield(
 ): OctraShieldContext {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [address, setAddress] = useState<Address | null>(null);
-  const [chainId, setChainId] = useState<number | null>(null);
+  // TODO: Octra chainId is a string version ("v3.0.0-irmin"), not a number
+  const [chainId, setChainId] = useState<string | null>(null);
   const [keyPair, setKeyPair] = useState<HfheKeyPair | null>(config.hfheKeyPair || null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -148,7 +151,7 @@ export function useOctraShield(
 
       txBuilderRef.current = builder;
       setAddress(builder.getSignerAddress());
-      setChainId(Number(networkConfig.chainId));
+      setChainId(networkConfig.chainId as string); // Octra: string, not numeric
       setStatus('connected');
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));

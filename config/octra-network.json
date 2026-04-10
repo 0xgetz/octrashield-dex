@@ -1,0 +1,99 @@
+{
+  "_comment": "Octra Network configuration for OctraShield DEX",
+  "_docs": "https://octrascan.io/docs.html",
+
+  "network": {
+    "name": "Octra Network",
+    "type": "mainnet-alpha",
+    "protocolVersion": "v3.0.0-irmin",
+    "consensusAlgorithm": "ABFT",
+    "smartContractRuntime": "OVM",
+    "smartContractLanguage": "AML (AppliedML)",
+
+    "_note_chain_id": "Octra is NOT EVM-compatible. There is no numeric chain ID. Network is identified by protocolVersion string.",
+    "_note_signing": "Signing uses Ed25519 (NOT ECDSA). Do not use ethers.js or web3.js.",
+    "_note_fees": "Fees are denominated in Operation Units (OU), not gas. Query via octra_recommendedFee.",
+    "_note_compile": "Contracts are compiled via octra_compileAml RPC method, no local compiler needed.",
+    "_note_rpc": "All RPC calls are JSON-RPC 2.0 POST requests to rpcUrl."
+  },
+
+  "endpoints": {
+    "rpc": "http://46.101.86.250:8080/rpc",
+    "rpcEnvVar": "OCTRA_RPC_URL",
+    "explorer": "https://octrascan.io",
+    "explorerApi": "https://octrascan.io/docs.html",
+    "faucet": "https://faucet.octra.network",
+    "faucetAmount": "10 OCT per 24 hours"
+  },
+
+  "nativeToken": {
+    "symbol": "OCT",
+    "name": "Octra",
+    "decimals": 6,
+    "totalSupply": "1000000000",
+    "addressPrefix": "oct",
+    "addressLength": 47,
+    "balanceFormat": "raw integer (Z integer), display with 6 decimal places"
+  },
+
+  "cryptography": {
+    "signatureAlgorithm": "Ed25519",
+    "publicKeyFormat": "base64-encoded 32 bytes",
+    "privateKeyFormat": "base64-encoded 32-byte seed (expand with libsodium)",
+    "publicKeyRegistration": "octra_registerPublicKey RPC method (required before first receive)",
+    "fheLibrary": "https://github.com/octra-labs/pvac_hfhe_cpp",
+    "fheScheme": "HFHE (Hypergraph Fully Homomorphic Encryption)",
+    "fhePrimeField": "Fp where p = 2^127 - 1 (Mersenne prime)"
+  },
+
+  "rpcMethods": {
+    "compile": "octra_compileAml",
+    "compileMultiFile": "octra_compileAmlMulti",
+    "deploy": "octra_submit (op_type: deploy)",
+    "call": "contract_call",
+    "balance": "octra_balance",
+    "nonce": "octra_nonce",
+    "fee": "octra_recommendedFee",
+    "submit": "octra_submit",
+    "transaction": "octra_transaction",
+    "nodeStatus": "node_status",
+    "registerPubkey": "octra_registerPublicKey",
+    "computeContractAddress": "octra_computeContractAddress"
+  },
+
+  "fees": {
+    "unit": "OU (Operation Units)",
+    "queryMethod": "octra_recommendedFee",
+    "_note": "Always query recommended fee dynamically. Do not hardcode OU values.",
+    "typicalValues": {
+      "standard": "200",
+      "deploy": "500",
+      "call": "250",
+      "stealth": "300"
+    }
+  },
+
+  "sdkReferences": {
+    "officialClient": "https://github.com/octra-labs/webcli",
+    "clientVersion": "v0.04.10-alpha",
+    "fheLibrary": "https://github.com/octra-labs/pvac_hfhe_cpp",
+    "contractTesting": "https://github.com/octra-labs/ocs01-test",
+    "lightNode": "https://github.com/octra-labs/light-node",
+    "walletGenerator": "https://github.com/octra-labs/wallet-gen",
+    "contractExamples": "https://github.com/octra-labs/contract-examples"
+  },
+
+  "contracts": {
+    "_note": "Placeholder addresses — update after mainnet deployment",
+    "factory": "TBD",
+    "router": "TBD",
+    "aiEngine": "TBD",
+    "shieldToken": "TBD"
+  },
+
+  "devnet": {
+    "_note": "Legacy devnet (archived) — DO NOT USE for new development",
+    "rpc": "http://165.227.225.79:8080",
+    "status": "deprecated"
+  }
+}
