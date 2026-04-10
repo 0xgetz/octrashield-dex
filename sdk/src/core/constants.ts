@@ -163,7 +163,10 @@ export const AI_SANDWICH_WINDOW_BLOCKS = 3;
 // ============================================================================
 
 export interface NetworkConfig {
-  readonly chainId: string | number;
+  // NOTE: Octra Network does NOT use numeric chain IDs (not EVM-compatible).
+  // chainId is always a string version like "v3.0.0-irmin".
+  // TODO: Remove numeric chain ID support once all EVM assumptions are purged.
+  readonly chainId: string;
   readonly name: string;
   readonly rpcUrl: string;
   readonly explorerUrl: string;
@@ -181,10 +184,13 @@ export interface NetworkConfig {
  */
 export const NETWORKS: Record<string, NetworkConfig> = {
   'octra-mainnet': {
-    chainId: 1,
-    name: 'Octra Mainnet',
-    rpcUrl: 'https://rpc.octra.network',
-    explorerUrl: 'https://explorer.octra.network',
+    // NOTE: Octra is NOT EVM. No numeric chain ID.
+    // Network identified by protocol version string "v3.0.0-irmin".
+    // TODO: Update factory/router/aiEngine with real deployed addresses after mainnet deployment.
+    chainId: 'v3.0.0-irmin' as const,
+    name: 'Octra Mainnet Alpha',
+    rpcUrl: 'http://46.101.86.250:8080/rpc',
+    explorerUrl: 'https://octrascan.io',
     contracts: {
       factory: '0x0000000000000000000000000000000000000000',
       router: '0x0000000000000000000000000000000000000000',
@@ -192,11 +198,14 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     },
   },
   'octra-testnet': {
-    chainId: 'octra-devnet-1',
-    name: 'Octra Devnet',
-    rpcUrl: 'http://165.227.225.79:8080',
-    explorerUrl: 'https://scan.octra.org',
-    faucetUrl: 'https://faucet.octra.org',
+    // NOTE: Octra is NOT EVM. No numeric chain ID.
+    // Network identified by protocol version string "v3.0.0-irmin".
+    // TODO: Update factory/router/aiEngine with real deployed contract addresses.
+    chainId: 'v3.0.0-irmin' as const,
+    name: 'Octra Testnet',
+    rpcUrl: process.env.OCTRA_RPC_URL ?? 'http://46.101.86.250:8080/rpc',
+    explorerUrl: 'https://octrascan.io',
+    faucetUrl: 'https://faucet.octra.network',
     contracts: {
       factory: '0x0000000000000000000000000000000000000000',
       router: '0x0000000000000000000000000000000000000000',
