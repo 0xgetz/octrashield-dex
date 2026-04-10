@@ -33,7 +33,11 @@ export interface WalletContextValue {
   /** Derived HFHE key pair for encryption (null if not derived) */
   keyPair: HfheKeyPair | null;
   /** Chain ID of the connected network */
-  chainId: number | null;
+  // TODO: Octra Network does not use numeric chain IDs (not EVM-compatible).
+  // Replace number with string once wallet integration is updated to use
+  // octra_nonce / node_status (returns version string "v3.0.0-irmin").
+  // See: https://octrascan.io/docs.html#node_status
+  chainId: string | null; // was: number | null (EVM assumption)
   /** Truncated address for display: 0x1234...abcd */
   displayAddress: string | null;
   /** Connect wallet — triggers browser extension prompt */
@@ -93,7 +97,8 @@ export function WalletProvider({ children, useMock = true }: WalletProviderProps
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [address, setAddress] = useState<Address | null>(null);
   const [keyPair, setKeyPair] = useState<HfheKeyPair | null>(null);
-  const [chainId, setChainId] = useState<number | null>(null);
+  // TODO: Octra chainId is a string version ("v3.0.0-irmin"), not a number.
+  const [chainId, setChainId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Persist connection across page reloads
