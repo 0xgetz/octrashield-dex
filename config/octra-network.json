@@ -9,14 +9,14 @@
     "factory": "octyVu2gYWCCqvVd8binnhCegbmkb5mxDDFJVLasKqFnuhE",
     "pair": "oct5uSwzUdgWoVUadZuwA5MHqwmAjtdDYYpVbfWSLUXknhW",
     "router": "octEQqBhqDno7oYPzc5pcbitmVxkNKE1XWaZJcztgooSy1W",
-    "_note": "Deployed to devnet via deploy_quick.py",
+    "_note": "Deployed/verified via verify_and_redeploy.py",
     "_deployer": "oct5N5eUdrycUBouGyFDaBhhgQvbYkUvLB3HJCD9xNe2g6R",
     "_txHashes": {
-      "shieldToken": "cbf106e65a23709aa461b544a28e375ee4add7d899736f26ced6100c85b5b11b",
-      "aiEngine": "9b3384c3eeb27a99ace40952e012ff0529550d99e2625c635bb2bdd5a9a87414",
-      "factory": "327bb5cc7f3ec328672e9cebb78abc7cc0f66ce579c7d1f742f9dbe6b1997dbe",
-      "pair": "00f13d7b69e50cff4f41c0792008317419b2e2655986471d067a2407168b735a",
-      "router": "1f3031365d465753c4bdc1d875757e0e842456708d0512c2095a5b6376c5894d"
+      "shieldToken": "e873e32c59a55712a1b68eeae5e7871bd5eb74114ee8e27aab4a6ca5372daa66",
+      "aiEngine": "faf6fb4673ba5bf976ad1403490aa111f7db44b921e78f37b41a396f70060bf6",
+      "factory": "1df5727967a0b2a0eaee9ca64ab64012e4f359b97c2c794f5fb02fab30339e08",
+      "pair": "ff9abd27d46d4802d4b664a61315d0324ae112cfad1a320f7fb328b3f76e4ade",
+      "router": "10b7fdda8efc12ebcfc260475854ae6add3de8f555739ccd4f5afdc35106332f"
     }
   }
 }
