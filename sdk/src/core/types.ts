@@ -494,7 +494,9 @@ export interface OctraShieldConfig {
 export interface WalletState {
   readonly connected: boolean;
   readonly address: Address | null;
-  readonly chainId: number | null;
+  // TODO: Octra Network does not use numeric chain IDs (not EVM-compatible).
+  // chainId should be string (e.g. "v3.0.0-irmin") once EVM assumptions are purged.
+  readonly chainId: string | null; // was: number | null
   readonly hfheKeyPair: HfheKeyPair | null;
 }
 
