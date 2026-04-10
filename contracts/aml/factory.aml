@@ -1,0 +1,124 @@
+contract OctraShieldFactory {
+
+  struct PoolRecord {
+    token0: address
+    token1: address
+    fee_bps: int
+    pair_address: address
+    lp_address: address
+    created_epoch: int
+  }
+
+  event PoolCreated(token0: address, token1: address, fee_bps: int, pair_address: address, pool_index: int)
+  event FeeTierAdded(fee_bps: int)
+  event OwnershipTransferred(old_owner: address, new_owner: address)
+
+  const MAX_FEE_BPS: int = 10000
+  const MIN_FEE_BPS: int = 1
+
+  state {
+    owner: address
+    pending_owner: address
+    ai_engine: address
+    router: address
+    pool_count: int
+    pools: map[int]PoolRecord
+    pool_index: map[string]int
+    fee_tiers: map[int]int
+    fee_tier_count: int
+  }
+
+  constructor() {
+    self.owner = origin
+    self.pool_count = 0
+    self.fee_tier_count = 0
+    self.fee_tiers[0] = 5
+    self.fee_tiers[1] = 30
+    self.fee_tiers[2] = 100
+    self.fee_tier_count = 3
+  }
+
+  fn set_ai_engine(addr: address): bool {
+    require(caller == self.owner, "not owner")
+    self.ai_engine = addr
+    return true
+  }
+
+  fn set_router(addr: address): bool {
+    require(caller == self.owner, "not owner")
+    self.router = addr
+    return true
+  }
+
+  fn enable_fee_tier(fee_bps: int): bool {
+    require(caller == self.owner, "not owner")
+    require(fee_bps >= MIN_FEE_BPS, "fee too low")
+    require(fee_bps <= MAX_FEE_BPS, "fee too high")
+    self.fee_tiers[self.fee_tier_count] = fee_bps
+    self.fee_tier_count += 1
+    emit FeeTierAdded(fee_bps)
+    return true
+  }
+
+  fn register_pool(token0: address, token1: address, fee_bps: int, pair_addr: address, lp_addr: address): bool {
+    require(caller == self.owner || caller == self.router, "not authorized")
+    require(fee_bps >= MIN_FEE_BPS, "fee too low")
+    require(fee_bps <= MAX_FEE_BPS, "fee too high")
+    let idx = self.pool_count
+    self.pools[idx].token0 = token0
+    self.pools[idx].token1 = token1
+    self.pools[idx].fee_bps = fee_bps
+    self.pools[idx].pair_address = pair_addr
+    self.pools[idx].lp_address = lp_addr
+    self.pools[idx].created_epoch = epoch
+    self.pool_count += 1
+    emit PoolCreated(token0, token1, fee_bps, pair_addr, idx)
+    return true
+  }
+
+  fn transfer_ownership(new_owner: address): bool {
+    require(caller == self.owner, "not owner")
+    self.pending_owner = new_owner
+    return true
+  }
+
+  fn accept_ownership(): bool {
+    require(caller == self.pending_owner, "not pending owner")
+    emit OwnershipTransferred(self.owner, self.pending_owner)
+    self.owner = self.pending_owner
+    return true
+  }
+
+  view fn get_pool_count(): int {
+    return self.pool_count
+  }
+
+  view fn get_pool_by_index(idx: int): string {
+    require(idx >= 0, "negative index")
+    require(idx < self.pool_count, "out of range")
+    let s = to_string(self.pools[idx].fee_bps)
+    s = concat(s, ",")
+    s = concat(s, to_string(self.pools[idx].created_epoch))
+    return s
+  }
+
+  view fn get_owner(): address {
+    return self.owner
+  }
+
+  view fn get_ai_engine(): address {
+    return self.ai_engine
+  }
+
+  view fn get_router(): address {
+    return self.router
+  }
+
+  view fn get_fee_tier_count(): int {
+    return self.fee_tier_count
+  }
+
+  view fn get_fee_tier(idx: int): int {
+    return self.fee_tiers[idx]
+  }
+}
