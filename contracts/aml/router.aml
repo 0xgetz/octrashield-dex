@@ -1,0 +1,58 @@
+contract OctraShieldRouter {
+
+  struct SwapStep {
+    pair: address
+    zero_for_one: int
+    fee_bps: int
+  }
+
+  event SwapExecuted(sender: address, amount_in: int, amount_out: int, steps: int)
+  event LiquidityAdded(sender: address, pair: address, pos_id: int)
+
+  const MAX_STEPS: int = 8
+  const MAX_SLIPPAGE: int = 10000
+
+  state {
+    owner: address
+    factory: address
+    step_count: int
+    steps: map[int]SwapStep
+  }
+
+  constructor(factory_addr: address) {
+    self.owner = origin
+    self.factory = factory_addr
+    self.step_count = 0
+  }
+
+  fn set_factory(addr: address): bool {
+    require(caller == self.owner, "not owner")
+    self.factory = addr
+    return true
+  }
+
+  fn set_step(idx: int, pair: address, zero_for_one: int, fee_bps: int): bool {
+    require(caller == self.owner, "not owner")
+    require(idx >= 0, "negative index")
+    require(idx < MAX_STEPS, "too many steps")
+    self.steps[idx].pair = pair
+    self.steps[idx].zero_for_one = zero_for_one
+    self.steps[idx].fee_bps = fee_bps
+    if idx >= self.step_count {
+      self.step_count = idx + 1
+    }
+    return true
+  }
+
+  view fn get_factory(): address {
+    return self.factory
+  }
+
+  view fn get_owner(): address {
+    return self.owner
+  }
+
+  view fn get_step_count(): int {
+    return self.step_count
+  }
+}
