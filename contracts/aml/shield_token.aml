@@ -1,0 +1,114 @@
+contract ShieldToken {
+
+  event Transfer(from: address, to: address, amount: int)
+  event Approval(owner: address, spender: address, amount: int)
+  event Mint(to: address, amount: int)
+  event Burn(from: address, amount: int)
+
+  state {
+    owner: address
+    name: string
+    symbol: string
+    decimals: int
+    total_supply: int
+    balances: map[address]int
+    allowances: map[address]map[address]int
+    minters: map[address]int
+  }
+
+  constructor(n: string, sym: string) {
+    self.owner = origin
+    self.name = n
+    self.symbol = sym
+    self.decimals = 18
+    self.total_supply = 0
+    self.minters[origin] = 1
+  }
+
+  fn add_minter(addr: address): bool {
+    require(caller == self.owner, "not owner")
+    self.minters[addr] = 1
+    return true
+  }
+
+  fn remove_minter(addr: address): bool {
+    require(caller == self.owner, "not owner")
+    self.minters[addr] = 0
+    return true
+  }
+
+  fn mint(to: address, amount: int): bool {
+    require(self.minters[caller] == 1, "not minter")
+    require(amount > 0, "zero amount")
+    self.balances[to] += amount
+    self.total_supply += amount
+    emit Mint(to, amount)
+    emit Transfer(self.owner, to, amount)
+    return true
+  }
+
+  fn burn(from: address, amount: int): bool {
+    require(self.minters[caller] == 1, "not minter")
+    require(amount > 0, "zero amount")
+    require(self.balances[from] >= amount, "insufficient balance")
+    self.balances[from] -= amount
+    self.total_supply -= amount
+    emit Burn(from, amount)
+    return true
+  }
+
+  fn transfer(to: address, amount: int): bool {
+    require(amount > 0, "zero amount")
+    require(self.balances[caller] >= amount, "insufficient balance")
+    self.balances[caller] -= amount
+    self.balances[to] += amount
+    emit Transfer(caller, to, amount)
+    return true
+  }
+
+  fn approve(spender: address, amount: int): bool {
+    require(amount >= 0, "negative amount")
+    self.allowances[caller][spender] = amount
+    emit Approval(caller, spender, amount)
+    return true
+  }
+
+  fn transfer_from(from: address, to: address, amount: int): bool {
+    require(amount > 0, "zero amount")
+    require(self.balances[from] >= amount, "insufficient balance")
+    require(self.allowances[from][caller] >= amount, "insufficient allowance")
+    self.allowances[from][caller] -= amount
+    self.balances[from] -= amount
+    self.balances[to] += amount
+    emit Transfer(from, to, amount)
+    return true
+  }
+
+  view fn balance_of(addr: address): int {
+    return self.balances[addr]
+  }
+
+  view fn allowance(owner: address, spender: address): int {
+    return self.allowances[owner][spender]
+  }
+
+  view fn get_total_supply(): int {
+    return self.total_supply
+  }
+
+  view fn get_name(): string {
+    return self.name
+  }
+
+  view fn get_symbol(): string {
+    return self.symbol
+  }
+
+  view fn get_decimals(): int {
+    return self.decimals
+  }
+
+  view fn get_owner(): address {
+    return self.owner
+  }
+}
