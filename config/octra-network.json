@@ -9,7 +9,7 @@
     "factory": "octyVu2gYWCCqvVd8binnhCegbmkb5mxDDFJVLasKqFnuhE",
     "pair": "oct5uSwzUdgWoVUadZuwA5MHqwmAjtdDYYpVbfWSLUXknhW",
     "router": "octEQqBhqDno7oYPzc5pcbitmVxkNKE1XWaZJcztgooSy1W",
-    "_note": "Deployed to devnet 2026-04-10 via deploy_fixed.py",
+    "_note": "Deployed to devnet via deploy_fixed.py",
     "_deployer": "oct5N5eUdrycUBouGyFDaBhhgQvbYkUvLB3HJCD9xNe2g6R",
     "_txHashes": {
       "shieldToken": "27d85badc695898116ac5dfb5dc34977608aa6bc60554a3aa8fc8b5a0250be5d",
