@@ -1,3 +1,9 @@
+// TODO: Octra Network uses Operation Units (OU), NOT gas.
+// Replace all `gas` / `estimateGas` / `gasLimit` references with OU equivalents:
+//   - Query OU fee: octra_recommendedFee RPC method
+//   - Field name: "ou" (not "gas" or "gasLimit")
+// See: https://octrascan.io/docs.html#octra_recommendedFee
+
 /**
  * Comprehensive Test Suite for Mock OctraShield Packages
  * 
