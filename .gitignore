@@ -80,3 +80,22 @@ coverage.xml
 # Environments
 *.env
 *.local
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Rust build artifacts
+target/
+
+# Wallet and sensitive files
+wallet.json
+
+# Build output
+dist/
+
+# Node modules
+node_modules/
+
+# macOS metadata
+.DS_Store
