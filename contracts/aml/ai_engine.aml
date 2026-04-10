@@ -1,0 +1,126 @@
+contract OctraShieldAIEngine {
+
+  struct VolatilityRecord {
+    epoch_num: int
+    price: int
+    volume: int
+    fee_bps: int
+  }
+
+  event FeeAdjusted(pair: address, old_fee: int, new_fee: int, volatility: int)
+  event MEVDetected(pair: address, attacker: address, epoch_num: int)
+  event RecordAdded(pair: address, epoch_num: int, price: int, volume: int)
+
+  const BASE_FEE: int = 30
+  const MIN_FEE: int = 5
+  const MAX_FEE: int = 500
+  const VOLATILITY_THRESHOLD_LOW: int = 100
+  const VOLATILITY_THRESHOLD_HIGH: int = 1000
+  const HISTORY_SIZE: int = 24
+
+  state {
+    owner: address
+    factory: address
+    record_count: map[address]int
+    records: map[address]map[int]VolatilityRecord
+    current_fees: map[address]int
+    mev_flags: map[address]map[address]int
+    total_adjustments: int
+    total_mev_detected: int
+  }
+
+  constructor(factory_addr: address) {
+    self.owner = origin
+    self.factory = factory_addr
+    self.total_adjustments = 0
+    self.total_mev_detected = 0
+  }
+
+  fn set_factory(addr: address): bool {
+    require(caller == self.owner, "not owner")
+    self.factory = addr
+    return true
+  }
+
+  fn add_record(pair: address, price: int, volume: int): bool {
+    require(caller == self.owner || caller == self.factory, "not authorized")
+    require(price > 0, "zero price")
+    require(volume >= 0, "negative volume")
+    let idx = self.record_count[pair]
+    if idx >= HISTORY_SIZE {
+      idx = 0
+    }
+    self.records[pair][idx].epoch_num = epoch
+    self.records[pair][idx].price = price
+    self.records[pair][idx].volume = volume
+    self.records[pair][idx].fee_bps = self.current_fees[pair]
+    self.record_count[pair] += 1
+    emit RecordAdded(pair, epoch, price, volume)
+    return true
+  }
+
+  fn compute_and_set_fee(pair: address, latest_price: int, prev_price: int): int {
+    require(caller == self.owner || caller == self.factory, "not authorized")
+    require(latest_price > 0, "zero price")
+    require(prev_price > 0, "zero prev price")
+    let diff = latest_price - prev_price
+    if diff < 0 {
+      diff = 0 - diff
+    }
+    let volatility = diff * 10000 / prev_price
+    let old_fee = self.current_fees[pair]
+    if old_fee == 0 {
+      old_fee = BASE_FEE
+    }
+    let new_fee = BASE_FEE
+    if volatility < VOLATILITY_THRESHOLD_LOW {
+      new_fee = MIN_FEE
+    }
+    if volatility >= VOLATILITY_THRESHOLD_LOW && volatility < VOLATILITY_THRESHOLD_HIGH {
+      new_fee = BASE_FEE
+    }
+    if volatility >= VOLATILITY_THRESHOLD_HIGH {
+      new_fee = MAX_FEE
+    }
+    self.current_fees[pair] = new_fee
+    self.total_adjustments += 1
+    emit FeeAdjusted(pair, old_fee, new_fee, volatility)
+    return new_fee
+  }
+
+  fn flag_mev(pair: address, suspect: address): bool {
+    require(caller == self.owner || caller == self.factory, "not authorized")
+    self.mev_flags[pair][suspect] = epoch
+    self.total_mev_detected += 1
+    emit MEVDetected(pair, suspect, epoch)
+    return true
+  }
+
+  view fn get_current_fee(pair: address): int {
+    let fee = self.current_fees[pair]
+    if fee == 0 {
+      return BASE_FEE
+    }
+    return fee
+  }
+
+  view fn get_record_count(pair: address): int {
+    return self.record_count[pair]
+  }
+
+  view fn get_total_adjustments(): int {
+    return self.total_adjustments
+  }
+
+  view fn get_total_mev_detected(): int {
+    return self.total_mev_detected
+  }
+
+  view fn get_owner(): address {
+    return self.owner
+  }
+
+  view fn get_factory(): address {
+    return self.factory
+  }
+}
