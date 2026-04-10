@@ -1,0 +1,32 @@
+# Lefthook pre-commit hooks for OctraShield DEX
+# Runs: biome lint, biome format check, cargo fmt --check
+# Install: npx lefthook install
+# Docs: https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: true
+  commands:
+    biome-lint-sdk:
+      glob: "sdk/src/**/*.{ts,tsx}"
+      run: pnpm --filter @octrashield/dex-sdk exec biome check {staged_files}
+      stage_fixed: false
+
+    biome-lint-app:
+      glob: "app/src/**/*.{ts,tsx}"
+      run: pnpm --filter @octrashield/dex-app exec biome check {staged_files}
+      stage_fixed: false
+
+    biome-format-check-sdk:
+      glob: "sdk/src/**/*.{ts,tsx}"
+      run: pnpm --filter @octrashield/dex-sdk exec biome format {staged_files}
+      stage_fixed: false
+
+    biome-format-check-app:
+      glob: "app/src/**/*.{ts,tsx}"
+      run: pnpm --filter @octrashield/dex-app exec biome format {staged_files}
+      stage_fixed: false
+
+    cargo-fmt:
+      glob: "contracts/**/*.rs"
+      run: cargo fmt --manifest-path contracts/Cargo.toml --all -- --check
+      stage_fixed: false
