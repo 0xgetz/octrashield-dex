@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+# OctraShield DEX — pre-commit hook
+# Runs biome lint, biome format check, and cargo fmt --check
+# Managed by husky — do not edit directly; update lefthook.yml instead.
+
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run lefthook for staged-file-aware checks
+npx lefthook run pre-commit
