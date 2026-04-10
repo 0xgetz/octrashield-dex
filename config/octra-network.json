@@ -12,11 +12,11 @@
     "_note": "Deployed/verified via verify_and_redeploy.py",
     "_deployer": "oct5N5eUdrycUBouGyFDaBhhgQvbYkUvLB3HJCD9xNe2g6R",
     "_txHashes": {
-      "shieldToken": "7624367afa4d27ed2247ebe05992d0fbc2c16434df2f44fa3866529244a908c1",
-      "aiEngine": "fc0560683459b346cff628c575fbed3f02068241f7300279df0459fe9968e76b",
-      "factory": "cbea1330859026cc653b5dcbc374d8b4f95af31065056bdb52c369f2773e3604",
-      "pair": "24e2b8aa03df89edc459ff2f9a048d216994d7c2680270998271ccfc6f4c8de8",
-      "router": "cbb8ac70d9cc54d9a6346190f75a076efb4bf05ff6cd060147be0eff08493950"
+      "shieldToken": "591633c056b59f27da7422e996b1940b8e901d1574da5c39279d8ba3f2002047",
+      "aiEngine": "3f7b54c4554429559e7be06267833398d6ecdddf23b3751510db6c8f29a14121",
+      "factory": "629f5bde44a63d2e5fe9560cc270044e46327ceecf56ad03b747e116257a9837",
+      "pair": "82d1e8ca65736d05b94b6411ba5ff295f21d7f9a1ed9c267da79d3b3057d8cca",
+      "router": "cc9b1ba1bd09f62fdc629f97c6b85f4d45ffcb0b1ef0a3f23843e888be625495"
     }
   }
 }
