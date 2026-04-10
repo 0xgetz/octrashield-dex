@@ -39,12 +39,16 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:types": "tsc -p tsconfig.types.json",
     "dev": "tsc -p tsconfig.esm.json --watch",
-    "lint": "eslint src/ --ext .ts,.tsx",
+    "lint": "biome check src/",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "prepare": "husky",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
+    "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
@@ -71,7 +75,10 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "typescript": "^5.5.0",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "husky": "^9.0.0",
+    "lefthook": "^1.7.0",
+    "@biomejs/biome": "^1.9.0"
   },
   "keywords": [
     "octrashield",
