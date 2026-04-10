@@ -1,0 +1,246 @@
+contract OctraShieldPair {
+
+  struct Position {
+    owner: address
+    tick_lower: int
+    tick_upper: int
+    liquidity: int
+    fee_growth_inside0: int
+    fee_growth_inside1: int
+    tokens_owed0: int
+    tokens_owed1: int
+  }
+
+  event Swap(sender: address, amount0_in: int, amount1_in: int, amount0_out: int, amount1_out: int)
+  event Mint(sender: address, tick_lower: int, tick_upper: int, liquidity: int, amount0: int, amount1: int)
+  event Burn(sender: address, tick_lower: int, tick_upper: int, liquidity: int, amount0: int, amount1: int)
+  event Collect(sender: address, amount0: int, amount1: int)
+  event Initialized(sqrt_price: int, tick: int)
+  event FeesUpdated(fee_bps: int)
+  event Paused()
+  event Unpaused()
+
+  const FEE_DENOMINATOR: int = 10000
+  const PROTOCOL_FEE_SHARE: int = 1000
+  const MIN_TICK: int = -887272
+  const MAX_TICK: int = 887272
+
+  state {
+    factory: address
+    token0: address
+    token1: address
+    fee_bps: int
+    lp_token: address
+    initialized: int
+    paused: int
+    sqrt_price: int
+    tick: int
+    liquidity: int
+    reserve0: int
+    reserve1: int
+    fee_growth_global0: int
+    fee_growth_global1: int
+    protocol_fees0: int
+    protocol_fees1: int
+    position_count: int
+    positions: map[int]Position
+    ai_engine: address
+    total_swaps: int
+    total_volume0: int
+    total_volume1: int
+  }
+
+  constructor(factory_addr: address, t0: address, t1: address, fee: int, lp_addr: address) {
+    require(fee >= 1, "fee too low")
+    require(fee <= 10000, "fee too high")
+    self.factory = factory_addr
+    self.token0 = t0
+    self.token1 = t1
+    self.fee_bps = fee
+    self.lp_token = lp_addr
+    self.initialized = 0
+    self.paused = 0
+    self.liquidity = 0
+    self.reserve0 = 0
+    self.reserve1 = 0
+    self.position_count = 0
+    self.total_swaps = 0
+    self.total_volume0 = 0
+    self.total_volume1 = 0
+  }
+
+  fn initialize(initial_sqrt_price: int): bool {
+    require(self.initialized == 0, "already initialized")
+    require(initial_sqrt_price > 0, "invalid price")
+    self.sqrt_price = initial_sqrt_price
+    self.tick = 0
+    self.initialized = 1
+    emit Initialized(initial_sqrt_price, 0)
+    return true
+  }
+
+  fn pause(): bool {
+    require(caller == self.factory, "not factory")
+    self.paused = 1
+    emit Paused()
+    return true
+  }
+
+  fn unpause(): bool {
+    require(caller == self.factory, "not factory")
+    self.paused = 0
+    emit Unpaused()
+    return true
+  }
+
+  fn set_ai_fee(new_fee_bps: int): bool {
+    require(caller == self.ai_engine, "not ai engine")
+    require(new_fee_bps >= 1, "fee too low")
+    require(new_fee_bps <= 10000, "fee too high")
+    self.fee_bps = new_fee_bps
+    emit FeesUpdated(new_fee_bps)
+    return true
+  }
+
+  fn set_ai_engine(addr: address): bool {
+    require(caller == self.factory, "not factory")
+    self.ai_engine = addr
+    return true
+  }
+
+  fn mint(tick_lower: int, tick_upper: int, amount0_desired: int, amount1_desired: int): int {
+    require(self.initialized == 1, "not initialized")
+    require(self.paused == 0, "paused")
+    require(tick_lower < tick_upper, "invalid ticks")
+    require(tick_lower >= MIN_TICK, "tick lower too low")
+    require(tick_upper <= MAX_TICK, "tick upper too high")
+    require(amount0_desired > 0 || amount1_desired > 0, "zero amounts")
+    let liquidity_added = amount0_desired
+    if amount1_desired < liquidity_added {
+      liquidity_added = amount1_desired
+    }
+    require(liquidity_added > 0, "zero liquidity")
+    let pos_id = self.position_count
+    self.positions[pos_id].owner = caller
+    self.positions[pos_id].tick_lower = tick_lower
+    self.positions[pos_id].tick_upper = tick_upper
+    self.positions[pos_id].liquidity = liquidity_added
+    self.positions[pos_id].tokens_owed0 = 0
+    self.positions[pos_id].tokens_owed1 = 0
+    self.position_count += 1
+    self.reserve0 += amount0_desired
+    self.reserve1 += amount1_desired
+    self.liquidity += liquidity_added
+    emit Mint(caller, tick_lower, tick_upper, liquidity_added, amount0_desired, amount1_desired)
+    return pos_id
+  }
+
+  fn burn(pos_id: int): bool {
+    require(self.initialized == 1, "not initialized")
+    require(pos_id >= 0, "invalid pos")
+    require(pos_id < self.position_count, "pos not found")
+    require(self.positions[pos_id].owner == caller, "not owner")
+    let liq = self.positions[pos_id].liquidity
+    require(liq > 0, "zero liquidity")
+    let amount0 = liq
+    let amount1 = liq
+    self.reserve0 -= amount0
+    self.reserve1 -= amount1
+    self.liquidity -= liq
+    self.positions[pos_id].liquidity = 0
+    self.positions[pos_id].tokens_owed0 += amount0
+    self.positions[pos_id].tokens_owed1 += amount1
+    emit Burn(caller, self.positions[pos_id].tick_lower, self.positions[pos_id].tick_upper, liq, amount0, amount1)
+    return true
+  }
+
+  fn collect(pos_id: int): bool {
+    require(pos_id >= 0, "invalid pos")
+    require(pos_id < self.position_count, "pos not found")
+    require(self.positions[pos_id].owner == caller, "not owner")
+    let owed0 = self.positions[pos_id].tokens_owed0
+    let owed1 = self.positions[pos_id].tokens_owed1
+    require(owed0 > 0 || owed1 > 0, "nothing to collect")
+    self.positions[pos_id].tokens_owed0 = 0
+    self.positions[pos_id].tokens_owed1 = 0
+    emit Collect(caller, owed0, owed1)
+    return true
+  }
+
+  fn swap(amount_in: int, zero_for_one: int, min_amount_out: int): int {
+    require(self.initialized == 1, "not initialized")
+    require(self.paused == 0, "paused")
+    require(amount_in > 0, "zero input")
+    require(self.liquidity > 0, "no liquidity")
+    let fee_amount = amount_in * self.fee_bps / FEE_DENOMINATOR
+    let amount_after_fee = amount_in - fee_amount
+    let proto_fee = fee_amount * PROTOCOL_FEE_SHARE / FEE_DENOMINATOR
+    let amount_out = 0
+    if zero_for_one == 1 {
+      require(self.reserve0 > 0, "no reserve0")
+      amount_out = amount_after_fee * self.reserve1 / (self.reserve0 + amount_after_fee)
+      require(amount_out >= min_amount_out, "slippage exceeded")
+      self.reserve0 += amount_in
+      self.reserve1 -= amount_out
+      self.protocol_fees0 += proto_fee
+      self.total_volume0 += amount_in
+      emit Swap(caller, amount_in, 0, 0, amount_out)
+    } else {
+      require(self.reserve1 > 0, "no reserve1")
+      amount_out = amount_after_fee * self.reserve0 / (self.reserve1 + amount_after_fee)
+      require(amount_out >= min_amount_out, "slippage exceeded")
+      self.reserve1 += amount_in
+      self.reserve0 -= amount_out
+      self.protocol_fees1 += proto_fee
+      self.total_volume1 += amount_in
+      emit Swap(caller, 0, amount_in, amount_out, 0)
+    }
+    self.total_swaps += 1
+    return amount_out
+  }
+
+  view fn get_reserves(): string {
+    let s = to_string(self.reserve0)
+    s = concat(s, ",")
+    s = concat(s, to_string(self.reserve1))
+    return s
+  }
+
+  view fn get_liquidity(): int {
+    return self.liquidity
+  }
+
+  view fn get_sqrt_price(): int {
+    return self.sqrt_price
+  }
+
+  view fn get_fee_bps(): int {
+    return self.fee_bps
+  }
+
+  view fn get_position(pos_id: int): string {
+    let s = to_string(self.positions[pos_id].liquidity)
+    s = concat(s, ",")
+    s = concat(s, to_string(self.positions[pos_id].tokens_owed0))
+    s = concat(s, ",")
+    s = concat(s, to_string(self.positions[pos_id].tokens_owed1))
+    return s
+  }
+
+  view fn get_stats(): string {
+    let s = to_string(self.total_swaps)
+    s = concat(s, ",")
+    s = concat(s, to_string(self.total_volume0))
+    s = concat(s, ",")
+    s = concat(s, to_string(self.total_volume1))
+    return s
+  }
+
+  view fn is_initialized(): int {
+    return self.initialized
+  }
+
+  view fn is_paused(): int {
+    return self.paused
+  }
+}
