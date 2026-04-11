@@ -9,14 +9,16 @@
     "factory": "octyVu2gYWCCqvVd8binnhCegbmkb5mxDDFJVLasKqFnuhE",
     "pair": "oct5uSwzUdgWoVUadZuwA5MHqwmAjtdDYYpVbfWSLUXknhW",
     "router": "octEQqBhqDno7oYPzc5pcbitmVxkNKE1XWaZJcztgooSy1W",
-    "_note": "Deployed/verified via verify_and_redeploy.py",
+    "_note": "All contracts confirmed on Octra devnet. Nonces 65-69.",
     "_deployer": "oct5N5eUdrycUBouGyFDaBhhgQvbYkUvLB3HJCD9xNe2g6R",
-    "_txHashes": {
-      "shieldToken": "591633c056b59f27da7422e996b1940b8e901d1574da5c39279d8ba3f2002047",
-      "aiEngine": "3f7b54c4554429559e7be06267833398d6ecdddf23b3751510db6c8f29a14121",
-      "factory": "629f5bde44a63d2e5fe9560cc270044e46327ceecf56ad03b747e116257a9837",
-      "pair": "82d1e8ca65736d05b94b6411ba5ff295f21d7f9a1ed9c267da79d3b3057d8cca",
-      "router": "cc9b1ba1bd09f62fdc629f97c6b85f4d45ffcb0b1ef0a3f23843e888be625495"
+    "_explorerBase": "https://devnet.octrascan.io",
+    "_deployedAt": "2026-04-11",
+    "_deployNonces": {
+      "shieldToken": 65,
+      "aiEngine": 66,
+      "factory": 67,
+      "pair": 68,
+      "router": 69
     }
   }
 }
