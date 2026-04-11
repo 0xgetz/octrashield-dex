@@ -7,16 +7,17 @@
     "shieldToken": "oct2HCucoJFXTuxi31o7HctXzAaUmhPPyucnMwrrpMo4TjM",
     "aiEngine": "oct3AJbKUEfSnDvzL8UVtQwzSEH53UMXuEiCSX3m3xkxvfw",
     "factory": "octHuhyCawJ1gpENz11BXiLuhoBt8L4RBVwAw1tdyDpGg1D",
-    "pair": "oct5uSwzUdgWoVUadZuwA5MHqwmAjtdDYYpVbfWSLUXknhW",
+    "pair": "octMNoNQQfc3SjHiS5grPC2faYC1hAf8Lw3gU8c6VV6B9UG",
     "router": "oct4dqgWDhkX1cNtYCbWMrGbdPK4keKqkCzpdTVG695zmz8",
-    "_note": "Verified on-chain via code_hash matching. 4 contracts confirmed epoch 417354. Pair requires constructor args (deployed by factory).",
     "_deployer": "oct5N5eUdrycUBouGyFDaBhhgQvbYkUvLB3HJCD9xNe2g6R",
+    "_network": "devnet",
+    "_deployedAt": "2026-04-11",
     "_txHashes": {
-      "shieldToken": "c274b8ab1c0f0f1076ca517f247754ad1157433098775c9e1e724a6e77a9cba4",
-      "aiEngine": "2ac1eec0e9309031e61159424f01e24290bfffa434aa1671dbefdab81fa9b82c",
-      "factory": "f6d3de7f79ed951cd24eb7c810899aa416b26c5a831b77845dca98a8fa97eedb",
+      "pair": "c514a6ce9a88f736ebc4489129a1fd1682015049d97f464f37e0a13d92bc87e1",
       "router": "c3144e5e51576d23406142995564d2a996b6e3aedd738034b5859cc485a28dd6",
-      "pair": "e25856650726d46c4bce025a3172cd64bf37f803c74ae446803e003e8ea27c2a"
+      "factory": "f6d3de7f79ed951cd24eb7c810899aa416b26c5a831b77845dca98a8fa97eedb",
+      "aiEngine": "2ac1eec0e9309031e61159424f01e24290bfffa434aa1671dbefdab81fa9b82c",
+      "shieldToken": "c274b8ab1c0f0f1076ca517f247754ad1157433098775c9e1e724a6e77a9cba4"
     }
   }
 }

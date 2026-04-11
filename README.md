@@ -10,18 +10,23 @@ OctraShield DEX uses Homomorphic FHE Encryption (HFHE) for private swap amounts 
 
 | Contract | Address | Explorer |
 |----------|---------|---------|
-| Shield Token | `octKLfoHEACuWXe3MTW5QiiFKcwYoma1iCvWFSDboErXiG2` | [View](https://devnet.octrascan.io/address/octKLfoHEACuWXe3MTW5QiiFKcwYoma1iCvWFSDboErXiG2) |
-| AI Engine | `oct8YBmmS7o2rM5UxmKEsWS2nir9j8tB22u7iY8twkjDESW` | [View](https://devnet.octrascan.io/address/oct8YBmmS7o2rM5UxmKEsWS2nir9j8tB22u7iY8twkjDESW) |
-| Factory | `octyVu2gYWCCqvVd8binnhCegbmkb5mxDDFJVLasKqFnuhE` | [View](https://devnet.octrascan.io/address/octyVu2gYWCCqvVd8binnhCegbmkb5mxDDFJVLasKqFnuhE) |
-| Pair (AMM) | `oct5uSwzUdgWoVUadZuwA5MHqwmAjtdDYYpVbfWSLUXknhW` | [View](https://devnet.octrascan.io/address/oct5uSwzUdgWoVUadZuwA5MHqwmAjtdDYYpVbfWSLUXknhW) |
-| Router | `octEQqBhqDno7oYPzc5pcbitmVxkNKE1XWaZJcztgooSy1W` | [View](https://devnet.octrascan.io/address/octEQqBhqDno7oYPzc5pcbitmVxkNKE1XWaZJcztgooSy1W) |
+| Shield Token | `oct2HCucoJFXTuxi31o7HctXzAaUmhPPyucnMwrrpMo4TjM` | [View](https://devnet.octrascan.io/address/oct2HCucoJFXTuxi31o7HctXzAaUmhPPyucnMwrrpMo4TjM) |
+| AI Engine | `oct3AJbKUEfSnDvzL8UVtQwzSEH53UMXuEiCSX3m3xkxvfw` | [View](https://devnet.octrascan.io/address/oct3AJbKUEfSnDvzL8UVtQwzSEH53UMXuEiCSX3m3xkxvfw) |
+| Factory | `octHuhyCawJ1gpENz11BXiLuhoBt8L4RBVwAw1tdyDpGg1D` | [View](https://devnet.octrascan.io/address/octHuhyCawJ1gpENz11BXiLuhoBt8L4RBVwAw1tdyDpGg1D) |
+| Pair (AMM) | `octMNoNQQfc3SjHiS5grPC2faYC1hAf8Lw3gU8c6VV6B9UG` | [View](https://devnet.octrascan.io/address/octMNoNQQfc3SjHiS5grPC2faYC1hAf8Lw3gU8c6VV6B9UG) |
+| Router | `oct4dqgWDhkX1cNtYCbWMrGbdPK4keKqkCzpdTVG695zmz8` | [View](https://devnet.octrascan.io/address/oct4dqgWDhkX1cNtYCbWMrGbdPK4keKqkCzpdTVG695zmz8) |
 
 - **Network:** Octra Devnet
 - **Explorer:** https://devnet.octrascan.io
 - **Deployer Wallet:** `oct5N5eUdrycUBouGyFDaBhhgQvbYkUvLB3HJCD9xNe2g6R`
-- **Deploy Nonces:** 65 (shieldToken), 66 (aiEngine), 67 (factory), 68 (pair), 69 (router)
+- **Deploy Nonces:** 28 (shieldToken), 29 (aiEngine), 30 (factory), 101 (pair), 32 (router)
 - **Deployed:** 2026-04-11
-
+- **Deploy TX Hashes:**
+  - shieldToken: [c274b8ab1c0f0f10...](https://devnet.octrascan.io/tx/c274b8ab1c0f0f1076ca517f247754ad1157433098775c9e1e724a6e77a9cba4)
+  - aiEngine: [2ac1eec0e9309031...](https://devnet.octrascan.io/tx/2ac1eec0e9309031e61159424f01e24290bfffa434aa1671dbefdab81fa9b82c)
+  - factory: [f6d3de7f79ed951c...](https://devnet.octrascan.io/tx/f6d3de7f79ed951cd24eb7c810899aa416b26c5a831b77845dca98a8fa97eedb)
+  - pair: [c514a6ce9a88f736...](https://devnet.octrascan.io/tx/c514a6ce9a88f736ebc4489129a1fd1682015049d97f464f37e0a13d92bc87e1)
+  - router: [c3144e5e51576d23...](https://devnet.octrascan.io/tx/c3144e5e51576d23406142995564d2a996b6e3aedd738034b5859cc485a28dd6)
 ---
 
 ## Project Structure

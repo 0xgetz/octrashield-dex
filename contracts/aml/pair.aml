@@ -51,7 +51,9 @@ contract OctraShieldPair {
   }
 
   constructor(factory_addr: address, t0: address, t1: address, fee: int, lp_addr: address) {
-    require(fee >= 1, "fee too low")
+    if fee == 0 {
+      fee = 30
+    }
     require(fee <= 10000, "fee too high")
     self.factory = factory_addr
     self.token0 = t0

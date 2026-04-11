@@ -1,10 +1,17 @@
 """
-OctraShield DEX - Deploy Script
-Uses urllib with proper headers and gzip handling. No external deps except nacl.
+OctraShield DEX - Deploy Script (Fixed)
+Root cause of contract_address_mismatch: 
+  - Old code used confirmed_nonce + 1 for TX, but pending_nonce may differ
+  - octra_computeContractAddress must receive the SAME nonce used in the TX
+  - The pair contract constructor requires fee >= 1 (fixed in pair.aml)
+
+Fix:
+  1. Always fetch pending_nonce from chain and use pending_nonce + 1 for TX
+  2. Pass that SAME nonce to octra_computeContractAddress
+  3. Wait and verify each TX is not rejected before proceeding
 """
 import sys, json, base64, time, hashlib, gzip, io
 
-# nacl is available in python3.14 site-packages
 sys.path.insert(0, "/usr/local/lib/python3.14/site-packages")
 from nacl.signing import SigningKey
 from urllib.request import urlopen, Request
@@ -35,7 +42,6 @@ def http_post(url, payload_bytes):
     req = Request(url, data=payload_bytes, headers=HEADERS, method="POST")
     with urlopen(req, timeout=25) as resp:
         raw = resp.read()
-        # Handle gzip
         if raw[:2] == b'\x1f\x8b':
             raw = gzip.decompress(raw)
         return json.loads(raw.decode("utf-8"))
@@ -72,13 +78,11 @@ def sign_tx(tx):
     signed = sk.sign(msg.encode("utf-8"))
     return base64.b64encode(signed.signature).decode()
 
-def get_nonce():
+def get_next_nonce():
+    """FIX: Use pending_nonce + 1 (not confirmed_nonce + 1)"""
     d = rpc_call("octra_balance", [DEPLOYER_ADDRESS])
-    return int(d.get("nonce", 0)) + 1
-
-def get_fee():
-    d = rpc_call("octra_recommendedFee", [])
-    return str(d.get("recommended", "1000"))
+    pending = int(d.get("pending_nonce", d.get("nonce", 0)))
+    return pending + 1
 
 def compile_aml(source):
     result = rpc_call("octra_compileAml", [source])
@@ -88,39 +92,32 @@ def compile_aml(source):
     return bc
 
 def compute_contract_address(bytecode_b64, deployer, nonce):
-    try:
-        result = rpc_call("octra_computeContractAddress", [bytecode_b64, deployer, str(nonce)])
-        addr = result.get("address") or result.get("contract_address")
-        if addr:
-            return addr
-    except Exception as e:
-        print(f"  computeContractAddress failed ({e}), using local hash fallback")
-    raw = base64.b64decode(bytecode_b64 + "==")
-    unique = f"{raw.decode('latin-1')}:{deployer}:{nonce}"
-    h = hashlib.sha256(unique.encode("latin-1")).digest()
-    n = int.from_bytes(h, "big")
-    alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-    result = ""
-    while n > 0:
-        n, r = divmod(n, 58)
-        result = alphabet[r] + result
-    return "oct" + result[:44]
+    """FIX: Always pass the actual TX nonce to ensure address matches"""
+    result = rpc_call("octra_computeContractAddress", [bytecode_b64, deployer, str(nonce)])
+    addr = result.get("address") or result.get("contract_address")
+    if addr:
+        return addr
+    raise RuntimeError(f"Could not compute contract address: {result}")
 
-def wait_confirm(tx_hash, timeout=30):
+def wait_confirm(tx_hash, timeout=60):
     start = time.time()
     while time.time() - start < timeout:
         try:
             r = rpc_call("octra_transaction", [tx_hash])
             status = r.get("status") or r.get("tx_status") or ""
+            error = r.get("error", {})
             if status in ("confirmed", "success", "included"):
-                print(f"  Confirmed! ({status})")
-                return True, status
+                print(f"  Confirmed!")
+                return True, status, None
+            if status == "rejected":
+                print(f"  REJECTED: {error}")
+                return False, "rejected", error
             print(f"  Status: {status!r} ({int(time.time()-start)}s)...")
         except Exception as e:
             print(f"  Poll error: {e}")
         time.sleep(4)
-    print("  Not confirmed in 30s -- tx submitted, likely still confirming")
-    return False, "pending"
+    print("  Not confirmed in timeout -- may still be processing")
+    return False, "pending", None
 
 def deploy_one(label, aml_file):
     print(f"\n=== DEPLOYING: {label} ===")
@@ -128,17 +125,19 @@ def deploy_one(label, aml_file):
         source = f.read()
     bytecode = compile_aml(source)
     print(f"  Bytecode: {len(bytecode)} chars")
-    ou = get_fee()
-    nonce = get_nonce()
+    
+    # FIX: Get fresh pending_nonce for each deploy and use it consistently
+    nonce = get_next_nonce()
     timestamp = time.time()
     contract_addr = compute_contract_address(bytecode, DEPLOYER_ADDRESS, nonce)
-    print(f"  Nonce: {nonce} | OU: {ou} | Addr: {contract_addr}")
+    print(f"  Nonce: {nonce} | Addr: {contract_addr}")
+    
     tx = {
         "from": DEPLOYER_ADDRESS,
         "to_": contract_addr,
         "amount": "0",
         "nonce": nonce,
-        "ou": ou,
+        "ou": "1000",
         "timestamp": timestamp,
         "op_type": "deploy",
         "encrypted_data": bytecode,
@@ -149,8 +148,13 @@ def deploy_one(label, aml_file):
     result = rpc_call("octra_submit", [tx_full])
     tx_hash = result.get("tx_hash") or result.get("hash") or str(result)
     print(f"  Tx hash: {tx_hash}")
-    confirmed, status = wait_confirm(tx_hash, timeout=30)
-    print(f"  Done: confirmed={confirmed} addr={contract_addr}")
+    
+    # FIX: Verify TX is not rejected before proceeding
+    confirmed, status, error = wait_confirm(tx_hash, timeout=60)
+    if status == "rejected":
+        raise RuntimeError(f"Deploy of {label} rejected: {error}")
+    
+    print(f"  Done: status={status} addr={contract_addr}")
     return contract_addr, tx_hash, confirmed
 
 def main():
@@ -161,13 +165,16 @@ def main():
     print(f"{'#'*60}")
 
     bal = rpc_call("octra_balance", [DEPLOYER_ADDRESS])
-    print(f"\nBalance: {bal.get('balance','?')} OCT  |  Nonce: {bal.get('nonce','?')}")
+    nonce = int(bal.get("nonce", 0))
+    pending = int(bal.get("pending_nonce", nonce))
+    print(f"\nBalance: {bal.get('balance','?')} OCT  |  Nonce: {nonce}  |  Pending: {pending}")
+    print(f"Next TX nonce will be: {pending + 1}")
 
     contracts = [
         ("shieldToken", "shield_token.aml"),
         ("aiEngine",    "ai_engine.aml"),
         ("factory",     "factory.aml"),
-        ("pair",        "pair.aml"),
+        ("pair",        "pair.aml"),   # pair.aml has fee default fix: if fee==0 set fee=30
         ("router",      "router.aml"),
     ]
 
@@ -178,15 +185,15 @@ def main():
         addr, txh, ok = deploy_one(key, aml_file)
         results[key] = addr
         tx_hashes[key] = txh
-        time.sleep(2)
+        time.sleep(3)  # Brief pause between deploys
 
     # Update config
     with open(CONFIG_FILE) as f:
         cfg = json.load(f)
     cfg["contracts"].update(results)
-    cfg["contracts"]["_note"] = "Deployed to devnet via deploy_fast.py"
     cfg["contracts"]["_deployer"] = DEPLOYER_ADDRESS
     cfg["contracts"]["_txHashes"] = tx_hashes
+    cfg["contracts"]["_deployedAt"] = time.strftime("%Y-%m-%d")
     with open(CONFIG_FILE, "w") as f:
         json.dump(cfg, f, indent=2)
     print("\nconfig/octra-network.json updated")
@@ -196,7 +203,7 @@ def main():
     print(f"{'#'*60}")
     for k, v in results.items():
         print(f"  {k:15s}: {v}")
-    print(f"\nExplorer: {EXPLORER}")
+        print(f"  {'':15s}  {EXPLORER}/tx/{tx_hashes[k]}")
     print(json.dumps(results, indent=2))
 
 if __name__ == "__main__":
