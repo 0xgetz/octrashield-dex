@@ -44,10 +44,10 @@ export function tickToSqrtPriceX96(tick: number): bigint {
   
   // For extreme ticks, return min/max directly
   if (clampedTick <= MIN_TICK + 1) {
-    return BigInt(Math.floor(MIN_SQRT_RATIO));
+    return MIN_SQRT_RATIO;
   }
   if (clampedTick >= MAX_TICK - 1) {
-    return BigInt(Math.floor(MAX_SQRT_RATIO));
+    return MAX_SQRT_RATIO;
   }
   
   const price = tickToPrice(clampedTick);
@@ -56,7 +56,7 @@ export function tickToSqrtPriceX96(tick: number): bigint {
   const result = sqrtPrice * Q96;
   
   if (!isFinite(result) || isNaN(result)) {
-    return clampedTick < 0 ? BigInt(Math.floor(MIN_SQRT_RATIO)) : BigInt(Math.floor(MAX_SQRT_RATIO));
+    return clampedTick < 0 ? MIN_SQRT_RATIO : MAX_SQRT_RATIO;
   }
   
   return BigInt(Math.floor(result));
@@ -102,10 +102,15 @@ export function clampTick(tick: number): number {
  * Returns a tuple [tickLower, tickUpper] for destructuring.
  */
 export function fullRangeTicks(tickSpacing: number): [number, number] {
+  if (!Number.isInteger(tickSpacing) || tickSpacing <= 0) {
+    throw new Error('tickSpacing must be a positive integer');
+  }
+  // Do not clamp here: a full-range position must remain aligned and span the
+  // protocol bounds, so the aligned endpoints may sit just outside them.
   return [
-    roundTickDown(MIN_TICK, tickSpacing),
-    roundTickUp(MAX_TICK, tickSpacing),
-  ] as [number, number];
+    Math.floor(MIN_TICK / tickSpacing) * tickSpacing,
+    Math.ceil(MAX_TICK / tickSpacing) * tickSpacing,
+  ];
 }
 
 // ============================================================================
@@ -176,7 +181,7 @@ export function calculatePriceImpact(
   marketPrice: number
 ): number {
   if (marketPrice === 0) return 0;
-  return Math.abs((executionPrice - marketPrice) / marketPrice) * 100;
+  return ((marketPrice - executionPrice) / marketPrice) * 100;
 }
 
 // ============================================================================
@@ -287,10 +292,10 @@ export function calculateLiquidity(
       return 0n;
     }
     
-    // L0 = amount0 * sqrtLower * currentSqrtPrice / (currentSqrtPrice - sqrtLower) / Q96
-    // = amount0 * lower * currentSqrtPrice / (diff1 * Q96)
-    const liq0Denom = diff1 * Q96;
-    const liq0 = (amount0 * lower * currentSqrtPrice) / liq0Denom;
+    // L0 = amount0 * currentSqrtPrice * sqrtUpper /
+    //      (sqrtUpper - currentSqrtPrice) / Q96.
+    const liq0Denom = diff2 * Q96;
+    const liq0 = (amount0 * currentSqrtPrice * upper) / liq0Denom;
     
     // L1 = amount1 * Q96 / (currentSqrtPrice - sqrtLower)
     const liq1 = (amount1 * Q96) / diff1;

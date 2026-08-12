@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 
 export interface ModalProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
@@ -26,12 +27,15 @@ const sizeMap = {
 
 export function Modal({
   open,
+  isOpen,
   onClose,
   title,
   children,
   size = 'md',
   hideClose = false,
 }: ModalProps) {
+  const visible = open ?? isOpen ?? false;
+
   const handleEsc = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -40,7 +44,7 @@ export function Modal({
   );
 
   useEffect(() => {
-    if (open) {
+    if (visible) {
       document.addEventListener('keydown', handleEsc);
       document.body.style.overflow = 'hidden';
     }
@@ -48,11 +52,11 @@ export function Modal({
       document.removeEventListener('keydown', handleEsc);
       document.body.style.overflow = '';
     };
-  }, [open, handleEsc]);
+  }, [visible, handleEsc]);
 
   return (
     <AnimatePresence>
-      {open && (
+      {visible && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div
@@ -66,6 +70,9 @@ export function Modal({
 
           {/* Panel */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? 'modal-title' : undefined}
             initial={{ opacity: 0, scale: 0.95, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -84,7 +91,7 @@ export function Modal({
             {(title || !hideClose) && (
               <div className="flex items-center justify-between px-5 pt-4 pb-0">
                 {title && (
-                  <h3 className="text-lg font-semibold text-surface-50">{title}</h3>
+                  <h3 id="modal-title" className="text-lg font-semibold text-surface-50">{title}</h3>
                 )}
                 {!hideClose && (
                   <button

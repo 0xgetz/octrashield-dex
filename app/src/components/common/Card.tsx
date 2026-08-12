@@ -80,6 +80,7 @@ export function StatCard({
   label,
   value,
   subValue,
+  change,
   icon,
   trend,
   className,
@@ -87,6 +88,7 @@ export function StatCard({
   label: string;
   value: string;
   subValue?: string;
+  change?: string;
   icon?: ReactNode;
   trend?: { value: string; positive: boolean };
   className?: string;
@@ -100,12 +102,12 @@ export function StatCard({
           {subValue && (
             <p className="text-xs text-surface-300 mt-0.5">{subValue}</p>
           )}
-          {trend && (
+          {(trend || change) && (
             <p className={clsx(
               'text-xs font-medium mt-1',
-              trend.positive ? 'text-emerald-400' : 'text-red-400'
+              trend?.positive === false ? 'text-red-400' : 'text-emerald-400'
             )}>
-              {trend.positive ? '+' : ''}{trend.value}
+              {trend ? `${trend.positive ? '+' : ''}${trend.value}` : change}
             </p>
           )}
         </div>

@@ -43,7 +43,7 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-1">
             {NAV_ITEMS.map(({ path, label }) => {
               const isActive = location.pathname === path ||
-                (path !== '/' && location.pathname.startsWith(path));
+                location.pathname.startsWith(path);
               return (
                 <Link
                   key={path}

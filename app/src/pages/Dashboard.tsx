@@ -11,11 +11,9 @@
  */
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import type { Address } from '@octrashield/dex-sdk';
-import { getTokenMeta } from '@/config/tokens.js';
 import { variants } from '@/config/theme.js';
 import {
   Card,

@@ -1,43 +1,40 @@
 /**
- * TokenInput — Amount input field with token selector, balance, and MAX button.
- * Core input component used in Swap, AddLiquidity, and Transfer flows.
+ * TokenInput — Amount input with token selector, balance, and MAX button.
  */
 
 import { useCallback, type ChangeEvent } from 'react';
 import { clsx } from 'clsx';
 import type { Address } from '@octrashield/dex-sdk';
 import { TokenIcon } from './TokenIcon.js';
-import { getTokenMeta } from '@/config/tokens.js';
+import { getTokenMeta, KNOWN_TOKENS } from '@/config/tokens.js';
 
 export interface TokenInputProps {
-  /** Token address */
-  token: Address | null;
-  /** Amount value (string for precision) */
-  amount: string;
-  /** Called when amount changes */
-  onAmountChange: (value: string) => void;
-  /** Called when user clicks the token selector */
+  token: Address | string | null;
+  amount?: string;
+  value?: string;
+  onAmountChange?: (value: string) => void;
+  onChange?: (value: string) => void;
   onTokenSelect?: () => void;
-  /** Decrypted balance for display */
   balance?: string | null;
-  /** USD value estimate */
   usdValue?: string | null;
-  /** Label above the input (e.g., "You pay", "You receive") */
   label?: string;
-  /** Whether this is the output (read-only) side */
   readOnly?: boolean;
-  /** Whether the balance is still loading/decrypting */
   balanceLoading?: boolean;
-  /** Disable interaction */
   disabled?: boolean;
-  /** Additional class */
+  showMax?: boolean;
   className?: string;
+}
+
+function isAddress(value: string): boolean {
+  return value.startsWith('0x') || value.startsWith('oct');
 }
 
 export function TokenInput({
   token,
   amount,
+  value,
   onAmountChange,
+  onChange,
   onTokenSelect,
   balance,
   usdValue,
@@ -45,24 +42,31 @@ export function TokenInput({
   readOnly = false,
   balanceLoading = false,
   disabled = false,
+  showMax = true,
   className,
 }: TokenInputProps) {
-  const meta = token ? getTokenMeta(token) : null;
+  const currentAmount = amount ?? value ?? '';
+  const changeAmount = onAmountChange ?? onChange ?? (() => undefined);
+  const tokenString = token ?? '';
+  const meta = tokenString
+    ? isAddress(tokenString)
+      ? getTokenMeta(tokenString as Address)
+      : KNOWN_TOKENS.find((item) => item.symbol === tokenString)
+    : null;
 
   const handleChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value;
-      // Allow only valid decimal input
-      if (val === '' || /^\d*\.?\d*$/.test(val)) {
-        onAmountChange(val);
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const nextValue = event.target.value;
+      if (nextValue === '' || /^\d*\.?\d*$/.test(nextValue)) {
+        changeAmount(nextValue);
       }
     },
-    [onAmountChange]
+    [changeAmount]
   );
 
   const handleMax = useCallback(() => {
-    if (balance) onAmountChange(balance);
-  }, [balance, onAmountChange]);
+    if (balance) changeAmount(balance);
+  }, [balance, changeAmount]);
 
   return (
     <div
@@ -74,11 +78,8 @@ export function TokenInput({
         className
       )}
     >
-      {/* Top row: label + balance */}
       <div className="flex items-center justify-between mb-2">
-        {label && (
-          <span className="text-xs font-medium text-surface-400">{label}</span>
-        )}
+        {label && <span className="text-xs font-medium text-surface-400">{label}</span>}
         <div className="flex items-center gap-1.5 ml-auto">
           {balanceLoading ? (
             <div className="shimmer w-16 h-3" />
@@ -86,8 +87,9 @@ export function TokenInput({
             <>
               <span className="text-xs text-surface-400">Balance:</span>
               <span className="text-xs font-mono text-surface-300">{balance}</span>
-              {!readOnly && (
+              {!readOnly && showMax && (
                 <button
+                  type="button"
                   onClick={handleMax}
                   className="text-2xs font-semibold text-octra-400 hover:text-octra-300 uppercase ml-1 transition-colors"
                 >
@@ -99,13 +101,12 @@ export function TokenInput({
         </div>
       </div>
 
-      {/* Main row: amount input + token selector */}
       <div className="flex items-center gap-3">
         <input
           type="text"
           inputMode="decimal"
           placeholder="0.0"
-          value={amount}
+          value={currentAmount}
           onChange={handleChange}
           readOnly={readOnly}
           disabled={disabled}
@@ -118,6 +119,7 @@ export function TokenInput({
         />
 
         <button
+          type="button"
           onClick={onTokenSelect}
           disabled={!onTokenSelect}
           className={clsx(
@@ -128,11 +130,18 @@ export function TokenInput({
             !onTokenSelect && 'cursor-default'
           )}
         >
-          {token && meta ? (
+          {tokenString && meta ? (
             <>
-              <TokenIcon address={token} size={22} />
+              <TokenIcon
+                {...(isAddress(tokenString)
+                  ? { address: tokenString as Address }
+                  : { symbol: tokenString })}
+                size={22}
+              />
               <span className="font-semibold text-sm text-surface-50">{meta.symbol}</span>
             </>
+          ) : tokenString ? (
+            <span className="font-semibold text-sm text-surface-50">{tokenString}</span>
           ) : (
             <span className="font-medium text-sm text-surface-300">Select token</span>
           )}
@@ -144,7 +153,6 @@ export function TokenInput({
         </button>
       </div>
 
-      {/* Bottom row: USD estimate */}
       {usdValue && (
         <div className="mt-1.5">
           <span className="text-xs text-surface-400 font-mono">${usdValue}</span>

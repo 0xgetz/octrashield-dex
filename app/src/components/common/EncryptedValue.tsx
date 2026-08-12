@@ -1,9 +1,8 @@
 /**
- * EncryptedValue — Displays encrypted values with reveal animation.
+ * EncryptedValue — Displays sensitive values with a privacy-first reveal toggle.
  *
- * Shows a blurred/shimmer placeholder when encrypted, then animates
- * to the decrypted plaintext. Includes a lock icon toggle for
- * manual reveal/hide of sensitive values.
+ * This is a presentation component. It does not provide cryptographic security;
+ * callers must decrypt and authorize values before passing them to the UI.
  */
 
 import { useState } from 'react';
@@ -11,19 +10,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 
 export interface EncryptedValueProps {
-  /** Decrypted plaintext value (null = still encrypted/loading) */
   value: string | null;
-  /** Formatted display value (e.g., "1,234.56 OCTA") */
   displayValue?: string;
-  /** Loading state (decryption in progress) */
   loading?: boolean;
-  /** Allow user to toggle visibility */
   revealable?: boolean;
-  /** Size variant */
+  defaultRevealed?: boolean;
+  placeholder?: string;
   size?: 'sm' | 'md' | 'lg';
-  /** Font mono */
   mono?: boolean;
-  /** Additional class */
   className?: string;
 }
 
@@ -37,16 +31,17 @@ export function EncryptedValue({
   value,
   displayValue,
   loading = false,
-  revealable = false,
+  revealable = true,
+  defaultRevealed = false,
+  placeholder = '****.**',
   size = 'md',
   mono = true,
   className,
 }: EncryptedValueProps) {
-  const [revealed, setRevealed] = useState(!revealable);
+  const [revealed, setRevealed] = useState(defaultRevealed || !revealable);
   const display = displayValue ?? value;
   const isDecrypted = value !== null && !loading;
 
-  // Loading / decrypting state
   if (loading) {
     return (
       <div className={clsx('inline-flex items-center gap-2', className)}>
@@ -56,21 +51,17 @@ export function EncryptedValue({
     );
   }
 
-  // Not yet decrypted
   if (!isDecrypted) {
     return (
-      <div className={clsx('inline-flex items-center gap-2', sizeStyles[size], className)}>
-        <span className="text-surface-500 select-none" style={{ filter: 'blur(4px)' }}>
-          ****.**
-        </span>
+      <div className={clsx('inline-flex items-center gap-2', sizeStyles[size], 'encrypted-value', className)}>
+        <span className="text-surface-500 select-none" style={{ filter: 'blur(4px)' }}>{placeholder}</span>
         <LockIcon locked className="w-3.5 h-3.5 text-shield-400" />
       </div>
     );
   }
 
-  // Decrypted — show with optional reveal toggle
   return (
-    <div className={clsx('inline-flex items-center gap-2', sizeStyles[size], className)}>
+    <div className={clsx('inline-flex items-center gap-2', sizeStyles[size], !revealed && 'encrypted-value', className)}>
       <AnimatePresence mode="wait">
         <motion.span
           key={revealed ? 'revealed' : 'hidden'}
@@ -78,36 +69,28 @@ export function EncryptedValue({
           animate={{ opacity: 1, filter: revealed ? 'blur(0px)' : 'blur(6px)' }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className={clsx(
-            'text-surface-50',
-            mono && 'font-mono tracking-tight',
-            !revealed && 'select-none'
-          )}
+          className={clsx('text-surface-50', mono && 'font-mono tracking-tight', !revealed && 'select-none')}
         >
-          {revealed ? display : '****.**'}
+          {revealed ? display : placeholder}
         </motion.span>
       </AnimatePresence>
 
       {revealable && (
         <button
-          onClick={() => setRevealed((r) => !r)}
+          type="button"
+          onClick={() => setRevealed((current) => !current)}
           className="p-0.5 rounded text-surface-400 hover:text-shield-400 transition-colors"
           title={revealed ? 'Hide value' : 'Reveal value'}
+          aria-label={revealed ? 'Hide value' : 'Reveal value'}
         >
           <LockIcon locked={!revealed} className="w-3.5 h-3.5" />
         </button>
       )}
 
-      {!revealable && isDecrypted && (
-        <LockIcon locked={false} className="w-3 h-3 text-emerald-500/60" />
-      )}
+      {!revealable && isDecrypted && <LockIcon locked={false} className="w-3 h-3 text-emerald-500/60" />}
     </div>
   );
 }
-
-// ============================================================================
-// Lock Icon
-// ============================================================================
 
 function LockIcon({ locked, className }: { locked: boolean; className?: string }) {
   if (locked) {

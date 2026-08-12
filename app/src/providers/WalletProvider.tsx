@@ -59,7 +59,7 @@ const WalletContext = createContext<WalletContextValue | null>(null);
 // ============================================================================
 
 const MOCK_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28' as Address;
-const MOCK_CHAIN_ID = 9999; // Octra testnet
+const MOCK_CHAIN_ID = 'octra-devnet-1';
 
 /** Generate deterministic mock HFHE keys from address */
 function deriveMockKeys(address: Address): HfheKeyPair {
@@ -135,9 +135,9 @@ export function WalletProvider({ children, useMock = true }: WalletProviderProps
       }
 
       // Production: request wallet connection via injected provider
-      const provider = (window as Record<string, unknown>).octraWallet as
-        | { request: (args: { method: string }) => Promise<unknown> }
-        | undefined;
+      const provider = (window as unknown as {
+        octraWallet?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+      }).octraWallet;
 
       if (!provider) {
         throw new Error('No OctraShield wallet detected. Please install the extension.');
@@ -151,9 +151,9 @@ export function WalletProvider({ children, useMock = true }: WalletProviderProps
         throw new Error('No accounts returned. Please unlock your wallet.');
       }
 
-      const cid = (await provider.request({
+      const cid = String(await provider.request({
         method: 'octra_chainId',
-      })) as number;
+      }));
 
       setAddress(accounts[0] as Address);
       setChainId(cid);
@@ -192,9 +192,9 @@ export function WalletProvider({ children, useMock = true }: WalletProviderProps
       }
 
       // Production: sign a fixed message to derive HFHE keys deterministically
-      const provider = (window as Record<string, unknown>).octraWallet as
-        | { request: (args: { method: string; params: unknown[] }) => Promise<unknown> }
-        | undefined;
+      const provider = (window as unknown as {
+        octraWallet?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+      }).octraWallet;
 
       if (!provider) throw new Error('Wallet not available');
 

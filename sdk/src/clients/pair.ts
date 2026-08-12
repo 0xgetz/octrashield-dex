@@ -57,7 +57,11 @@ export class PairClient {
    * @returns Estimated gas units required for the swap
    */
   async estimateSwapGas(token: Address, amountIn: bigint, amountOutMin: bigint): Promise<bigint> {
-    return this.tx.estimateGas ? await this.tx.estimateGas() : 150_000n;
+    return this.tx.estimateGas(
+      this.poolAddress,
+      'swap',
+      [token, amountIn, amountOutMin],
+    );
   }
 
   async swap(
@@ -253,6 +257,7 @@ export class PairClient {
    * @param params - Liquidity parameters
    * @returns Liquidity result with position ID and actual amounts
    */
+  async addLiquidity(params: AddLiquidityParams): Promise<LiquidityResult>;
   async addLiquidity(
     amount0: bigint,
     amount1: bigint,
@@ -260,25 +265,46 @@ export class PairClient {
     amount1Min: bigint,
     recipient: Address,
     deadline: bigint
+  ): Promise<LiquidityResult>;
+  async addLiquidity(
+    paramsOrAmount0: AddLiquidityParams | bigint,
+    amount1?: bigint,
+    amount0Min?: bigint,
+    amount1Min?: bigint,
+    recipient?: Address,
+    deadline?: bigint
   ): Promise<LiquidityResult> {
-    // Encrypt amounts
-    const encAmount0 = encrypt(amount0, this.keyPair);
-    const encAmount1 = encrypt(amount1, this.keyPair);
-    const encMin0 = encrypt(amount0Min, this.keyPair);
-    const encMin1 = encrypt(amount1Min, this.keyPair);
+    const params: Pick<AddLiquidityParams, 'tickLower' | 'tickUpper' | 'amount0Desired' | 'amount1Desired' | 'amount0Min' | 'amount1Min' | 'recipient' | 'deadline'> =
+      typeof paramsOrAmount0 === 'object'
+        ? paramsOrAmount0
+        : {
+            tickLower: MIN_TICK,
+            tickUpper: MAX_TICK,
+            amount0Desired: paramsOrAmount0,
+            amount1Desired: amount1 ?? 0n,
+            amount0Min: amount0Min ?? 0n,
+            amount1Min: amount1Min ?? 0n,
+            recipient: recipient ?? this.tx.getSignerAddress(),
+            deadline: deadline ?? 0n,
+          };
+
+    const encAmount0 = encrypt(params.amount0Desired, this.keyPair);
+    const encAmount1 = encrypt(params.amount1Desired, this.keyPair);
+    const encMin0 = encrypt(params.amount0Min, this.keyPair);
+    const encMin1 = encrypt(params.amount1Min, this.keyPair);
 
     const receipt = await this.tx.execute(
       this.poolAddress,
       'call_add_liquidity',
       [
-        MIN_TICK,
-        MAX_TICK,
+        params.tickLower,
+        params.tickUpper,
         encAmount0.ciphertext,
         encAmount1.ciphertext,
         encMin0.ciphertext,
         encMin1.ciphertext,
-        recipient,
-        deadline,
+        params.recipient,
+        params.deadline,
       ]
     );
 
@@ -299,26 +325,43 @@ export class PairClient {
    * @param params - Removal parameters
    * @returns Liquidity result with withdrawn amounts
    */
+  async removeLiquidity(params: RemoveLiquidityParams): Promise<LiquidityResult>;
   async removeLiquidity(
     lpAmount: bigint,
     amount0Min: bigint,
     amount1Min: bigint,
     recipient: Address,
     deadline: bigint
+  ): Promise<LiquidityResult>;
+  async removeLiquidity(
+    paramsOrLpAmount: RemoveLiquidityParams | bigint,
+    amount0Min?: bigint,
+    amount1Min?: bigint,
+    recipient?: Address,
+    deadline?: bigint
   ): Promise<LiquidityResult> {
-    const encLiquidity = encrypt(lpAmount, this.keyPair);
-    const encMin0 = encrypt(amount0Min, this.keyPair);
-    const encMin1 = encrypt(amount1Min, this.keyPair);
+    const params = typeof paramsOrLpAmount === 'object'
+      ? paramsOrLpAmount
+      : {
+          positionId: '0' as PositionId,
+          liquidityAmount: paramsOrLpAmount,
+          amount0Min: amount0Min ?? 0n,
+          amount1Min: amount1Min ?? 0n,
+          deadline: deadline ?? 0n,
+        };
+    const encLiquidity = encrypt(params.liquidityAmount, this.keyPair);
+    const encMin0 = encrypt(params.amount0Min, this.keyPair);
+    const encMin1 = encrypt(params.amount1Min, this.keyPair);
 
     const receipt = await this.tx.execute(
       this.poolAddress,
       'call_remove_liquidity',
       [
-        '0' as PositionId,
+        params.positionId,
         encLiquidity.ciphertext,
         encMin0.ciphertext,
         encMin1.ciphertext,
-        deadline,
+        params.deadline,
       ]
     );
 

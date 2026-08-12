@@ -16,7 +16,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 
 import { Button } from '@/components/common/Button.js';
 import { Spinner } from '@/components/common/Spinner.js';
@@ -54,14 +53,14 @@ describe('Button', () => {
 
   it('renders with primary variant class', () => {
     render(<Button variant="primary">Primary</Button>);
-    const btn = screen.getByText('Primary');
-    expect(btn.className).toMatch(/primary|bg-octra/);
+    const btn = screen.getByRole('button', { name: 'Primary' });
+    expect(btn.className).toMatch(/bg-octra|gradient/);
   });
 
   it('renders with secondary variant class', () => {
     render(<Button variant="secondary">Secondary</Button>);
-    const btn = screen.getByText('Secondary');
-    expect(btn.className).toMatch(/secondary|border/);
+    const btn = screen.getByRole('button', { name: 'Secondary' });
+    expect(btn.className).toMatch(/border/);
   });
 
   it('renders loading state with spinner', () => {
@@ -73,14 +72,14 @@ describe('Button', () => {
 
   it('renders small size', () => {
     render(<Button size="sm">Small</Button>);
-    const btn = screen.getByText('Small');
-    expect(btn.className).toMatch(/sm|px-3|py-1|text-sm/);
+    const btn = screen.getByRole('button', { name: 'Small' });
+    expect(btn.className).toMatch(/px-3|py-1\.5|text-xs/);
   });
 
   it('renders large size', () => {
     render(<Button size="lg">Large</Button>);
-    const btn = screen.getByText('Large');
-    expect(btn.className).toMatch(/lg|px-6|py-3|text-lg/);
+    const btn = screen.getByRole('button', { name: 'Large' });
+    expect(btn.className).toMatch(/px-6|py-3\.5|text-base/);
   });
 });
 
@@ -96,8 +95,9 @@ describe('Spinner', () => {
 
   it('renders with custom size', () => {
     const { container } = render(<Spinner size="lg" />);
-    const el = container.firstChild as HTMLElement;
-    expect(el.className).toMatch(/lg|w-8|h-8/);
+    const el = container.firstChild as SVGElement;
+    expect(el.getAttribute('width')).toBe('28');
+    expect(el.getAttribute('height')).toBe('28');
   });
 
   it('has animate-spin class', () => {
@@ -175,7 +175,7 @@ describe('Modal', () => {
       </Modal>
     );
     // Click the overlay (backdrop)
-    const overlay = screen.getByRole('dialog').parentElement;
+    const overlay = screen.getByRole('dialog').previousElementSibling;
     if (overlay) {
       fireEvent.click(overlay);
       expect(onClose).toHaveBeenCalled();
@@ -215,7 +215,7 @@ describe('TokenIcon', () => {
 describe('TokenPairIcon', () => {
   it('renders two token icons', () => {
     const { container } = render(<TokenPairIcon token0="WETH" token1="USDC" />);
-    const images = container.querySelectorAll('img');
+    container.querySelectorAll('img');
     // May have 2 images or fallback divs
     expect(container.children.length).toBeGreaterThanOrEqual(1);
   });
@@ -348,7 +348,7 @@ describe('StatusBadge', () => {
   it('renders success variant', () => {
     render(<StatusBadge variant="success">Active</StatusBadge>);
     const badge = screen.getByText('Active');
-    expect(badge.className).toMatch(/success|green/);
+    expect(badge.className).toMatch(/success|green|emerald/);
   });
 
   it('renders warning variant', () => {
@@ -409,7 +409,7 @@ describe('Tooltip', () => {
     await userEvent.hover(screen.getByText('Target'));
     await userEvent.unhover(screen.getByText('Target'));
     await waitFor(() => {
-      expect(screen.queryByText('Disappearing')).not.toBeVisible();
+      expect(screen.queryByText('Disappearing')).not.toBeInTheDocument();
     });
   });
 });

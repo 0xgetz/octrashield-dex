@@ -56,7 +56,7 @@ interface MockQuote {
 // ============================================================================
 
 export function Swap() {
-  const { status, address } = useWallet();
+  const { status } = useWallet();
   const { notify } = useOctra();
   const connected = status === 'connected';
 
@@ -161,6 +161,8 @@ export function Swap() {
           <p className="text-sm text-surface-400 mt-0.5">Trade tokens with encrypted order flow</p>
         </div>
         <button
+          type="button"
+          aria-label="Swap settings"
           onClick={() => setShowSettings(true)}
           className="p-2.5 rounded-xl bg-surface-800/60 border border-surface-500/20 hover:border-surface-500/40 transition-colors"
         >

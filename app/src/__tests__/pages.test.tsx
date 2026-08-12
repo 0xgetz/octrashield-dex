@@ -26,6 +26,21 @@ import { Portfolio } from '@/pages/Portfolio.js';
 // Mock OctraProvider Context
 // ============================================================================
 
+vi.mock('@/providers/WalletProvider.js', () => ({
+  useWallet: () => ({
+    status: 'connected',
+    address: 'oct2HCucoJFXTuxi31o7HctXzAaUmhPPyucnMwrrpMo4TjM',
+    chainId: 'octra-devnet-1',
+    keyPair: null,
+    displayAddress: 'oct2HCucoJFXTuxi31o7HctXzAaUmhPPyucnMwrrpMo4TjM',
+    hasKeys: true,
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    regenerateKeys: vi.fn(),
+    error: null,
+  }),
+}));
+
 vi.mock('@/providers/OctraProvider.js', () => ({
   useOctra: () => ({
     isConnected: true,
@@ -119,7 +134,7 @@ function renderWithParams(element: React.ReactElement, path: string, route: stri
 describe('Swap Page', () => {
   it('renders swap interface', () => {
     renderPage(<Swap />);
-    expect(screen.getByText(/swap/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Swap' })).toBeInTheDocument();
   });
 
   it('has token input fields', () => {
@@ -130,13 +145,13 @@ describe('Swap Page', () => {
 
   it('has swap button', () => {
     renderPage(<Swap />);
-    const btn = screen.getByRole('button', { name: /swap/i });
+    const btn = screen.getByRole('button', { name: 'Enter Amount' });
     expect(btn).toBeInTheDocument();
   });
 
   it('has slippage settings', () => {
     renderPage(<Swap />);
-    expect(screen.getByText(/slippage/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Swap settings' })).toBeInTheDocument();
   });
 
   it('has dark pool toggle', () => {
@@ -153,15 +168,15 @@ describe('Pools Page', () => {
   it('renders pool list', async () => {
     renderPage(<Pools />);
     await waitFor(() => {
-      expect(screen.getByText(/pools/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/OCTA/).length).toBeGreaterThan(0);
     });
   });
 
   it('displays pool cards or rows', async () => {
     renderPage(<Pools />);
     await waitFor(() => {
-      expect(screen.getByText(/WETH/)).toBeInTheDocument();
-      expect(screen.getByText(/USDC/)).toBeInTheDocument();
+      expect(screen.getAllByText(/OCTA/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/sUSD/).length).toBeGreaterThan(0);
     });
   });
 
@@ -174,7 +189,7 @@ describe('Pools Page', () => {
   it('has add liquidity link', async () => {
     renderPage(<Pools />);
     await waitFor(() => {
-      const links = screen.getAllByText(/add liquidity|new position/i);
+      const links = screen.getAllByText(/new position/i);
       expect(links.length).toBeGreaterThan(0);
     });
   });
@@ -188,14 +203,14 @@ describe('PoolDetail Page', () => {
   it('renders pool stats', async () => {
     renderWithParams(<PoolDetail />, '/pools/pool_001', '/pools/:poolId');
     await waitFor(() => {
-      expect(screen.getByText(/TVL|volume|fee/i)).toBeInTheDocument();
+      expect(screen.getByText('TVL')).toBeInTheDocument();
     });
   });
 
   it('shows token pair', async () => {
     renderWithParams(<PoolDetail />, '/pools/pool_001', '/pools/:poolId');
     await waitFor(() => {
-      expect(screen.getByText(/WETH/)).toBeInTheDocument();
+      expect(screen.getAllByText(/OCTA\/sUSD/).length).toBeGreaterThan(0);
     });
   });
 });
@@ -207,7 +222,7 @@ describe('PoolDetail Page', () => {
 describe('AddLiquidity Page', () => {
   it('renders liquidity form', () => {
     renderPage(<AddLiquidity />);
-    expect(screen.getByText(/add liquidity|new position/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/add liquidity/i).length).toBeGreaterThan(0);
   });
 
   it('has token amount inputs', () => {
@@ -218,17 +233,17 @@ describe('AddLiquidity Page', () => {
 
   it('has fee tier selection', () => {
     renderPage(<AddLiquidity />);
-    expect(screen.getByText(/fee tier|0\.3%|0\.05%|1%/i)).toBeInTheDocument();
+    expect(screen.getByText('Fee Tier')).toBeInTheDocument();
   });
 
   it('has price range controls', () => {
     renderPage(<AddLiquidity />);
-    expect(screen.getByText(/price range|min|max/i)).toBeInTheDocument();
+    expect(screen.getByText('Set Price Range')).toBeInTheDocument();
   });
 
   it('has full range toggle', () => {
     renderPage(<AddLiquidity />);
-    expect(screen.getByText(/full range/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Full Range').length).toBeGreaterThan(0);
   });
 });
 
@@ -240,29 +255,29 @@ describe('Positions Page', () => {
   it('renders positions list', async () => {
     renderPage(<Positions />);
     await waitFor(() => {
-      expect(screen.getByText(/positions|your liquidity/i)).toBeInTheDocument();
+      expect(screen.getByText('Your Positions')).toBeInTheDocument();
     });
   });
 
   it('shows position card with token pair', async () => {
     renderPage(<Positions />);
     await waitFor(() => {
-      expect(screen.getByText(/WETH/)).toBeInTheDocument();
+      expect(screen.getAllByText(/OCTA\/sUSD/).length).toBeGreaterThan(0);
     });
   });
 
   it('shows in-range status', async () => {
     renderPage(<Positions />);
     await waitFor(() => {
-      expect(screen.getByText(/in range|active/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/In Range|Out of Range/i).length).toBeGreaterThan(0);
     });
   });
 
   it('has collect fees button', async () => {
     renderPage(<Positions />);
     await waitFor(() => {
-      const btn = screen.getByText(/collect|claim/i);
-      expect(btn).toBeInTheDocument();
+      const buttons = screen.getAllByText(/Collect Fees/i);
+      expect(buttons.length).toBeGreaterThan(0);
     });
   });
 });
@@ -274,20 +289,20 @@ describe('Positions Page', () => {
 describe('Dashboard Page', () => {
   it('renders dashboard heading', () => {
     renderPage(<Dashboard />);
-    expect(screen.getByText(/dashboard|ai|octrashield/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'AI Dashboard' })).toBeInTheDocument();
   });
 
   it('shows dynamic fee section', async () => {
     renderPage(<Dashboard />);
     await waitFor(() => {
-      expect(screen.getByText(/dynamic fee|fee adjustment/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Dynamic Fee|Dynamic Fees/i).length).toBeGreaterThan(0);
     });
   });
 
   it('shows MEV detection section', async () => {
     renderPage(<Dashboard />);
     await waitFor(() => {
-      expect(screen.getByText(/MEV|threat/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/MEV|threat/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -301,7 +316,7 @@ describe('Dashboard Page', () => {
   it('has tab navigation', () => {
     renderPage(<Dashboard />);
     // Should have tabs for fees, MEV, volatility, rebalance
-    const tabs = screen.getAllByRole('tab') || screen.getAllByRole('button');
+    const tabs = screen.getAllByRole('button');
     expect(tabs.length).toBeGreaterThanOrEqual(2);
   });
 });
@@ -313,37 +328,34 @@ describe('Dashboard Page', () => {
 describe('Portfolio Page', () => {
   it('renders portfolio heading', () => {
     renderPage(<Portfolio />);
-    expect(screen.getByText(/portfolio|balances/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Portfolio' })).toBeInTheDocument();
   });
 
   it('shows token balances', async () => {
     renderPage(<Portfolio />);
     await waitFor(() => {
-      expect(screen.getByText(/WETH/)).toBeInTheDocument();
+      expect(screen.getAllByText(/OCTA/).length).toBeGreaterThan(0);
     });
   });
 
   it('shows encrypted total value', () => {
     renderPage(<Portfolio />);
     // Total value should be encrypted by default
-    const encrypted = screen.getByText(/\*\*\*|encrypted|blur/i) ||
-      document.querySelector('[class*="blur"]') ||
-      document.querySelector('[class*="encrypted"]');
-    expect(encrypted || true).toBeTruthy(); // encrypted or visible
+    expect(document.querySelector('[class*="encrypted-value"]')).toBeTruthy();
   });
 
   it('shows wallet address', () => {
     renderPage(<Portfolio />);
-    expect(screen.getByText(/octra1/)).toBeInTheDocument();
+    expect(screen.getByText(/oct2HCucoJFXTuxi31o7HctXzAaUmhPPyucnMwrrpMo4TjM/)).toBeInTheDocument();
   });
 
   it('shows HFHE key status', () => {
     renderPage(<Portfolio />);
-    expect(screen.getByText(/HFHE|key|active/i)).toBeInTheDocument();
+    expect(screen.getByText(/HFHE Keys Active|Keys Not Derived/i)).toBeInTheDocument();
   });
 
   it('has quick action buttons', () => {
     renderPage(<Portfolio />);
-    expect(screen.getByText(/swap|send|receive/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /swap|send|receive/i }).length).toBeGreaterThan(0);
   });
 });

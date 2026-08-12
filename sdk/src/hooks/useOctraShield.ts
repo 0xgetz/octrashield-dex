@@ -180,7 +180,7 @@ export function useOctraShield(
     }
 
     return {
-      factory: new FactoryClient(builder, contractAddresses.factory),
+      factory: new FactoryClient(builder, keyPair, contractAddresses.factory),
       router: new RouterClient(builder, keyPair, contractAddresses.router),
       aiEngine: new AIEngineClient(builder, keyPair, contractAddresses.aiEngine),
     };

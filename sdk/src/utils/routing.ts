@@ -356,6 +356,7 @@ export class SwapRouter {
       tokenIn,
       tokenOut,
       estimatedOutput: expectedOutput,
+      outputAmount: expectedOutput,
       priceImpactBps: Math.round(candidate.totalPriceImpact),
       totalFeeBps: candidate.totalFeeBps,
     };
@@ -598,6 +599,7 @@ export function decodeRoute(encoded: string): SwapRoute {
     tokenIn: hops[0].tokenIn,
     tokenOut: hops[hops.length - 1].tokenOut,
     estimatedOutput: 0n,
+    outputAmount: 0n,
     priceImpactBps: 0,
     totalFeeBps: 0,
   };

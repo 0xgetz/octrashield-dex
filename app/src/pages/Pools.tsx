@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import type { Address } from '@octrashield/dex-sdk';
 import { FEE_TIERS } from '@octrashield/dex-sdk';
-import { KNOWN_TOKENS, getTokenMeta } from '@/config/tokens.js';
+import { getTokenMeta } from '@/config/tokens.js';
 import { variants } from '@/config/theme.js';
 import {
   Card,

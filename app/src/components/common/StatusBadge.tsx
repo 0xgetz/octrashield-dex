@@ -5,7 +5,7 @@
 import { clsx } from 'clsx';
 import { type ReactNode } from 'react';
 
-export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'shield';
+export type BadgeVariant = 'success' | 'warning' | 'danger' | 'error' | 'active' | 'info' | 'neutral' | 'shield';
 
 export interface StatusBadgeProps {
   variant?: BadgeVariant;
@@ -21,6 +21,8 @@ const variantStyles: Record<BadgeVariant, string> = {
   success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   danger:  'bg-red-500/10 text-red-400 border-red-500/20',
+  error:   'bg-red-500/10 text-red-400 border-red-500/20',
+  active:  'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   info:    'bg-octra-500/10 text-octra-400 border-octra-500/20',
   neutral: 'bg-surface-700/60 text-surface-300 border-surface-500/20',
   shield:  'bg-shield-500/10 text-shield-400 border-shield-500/20',
@@ -30,6 +32,8 @@ const dotColors: Record<BadgeVariant, string> = {
   success: 'bg-emerald-400',
   warning: 'bg-amber-400',
   danger:  'bg-red-400',
+  error:   'bg-red-400',
+  active:  'bg-emerald-400',
   info:    'bg-octra-400',
   neutral: 'bg-surface-400',
   shield:  'bg-shield-400',

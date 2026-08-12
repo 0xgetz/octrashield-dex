@@ -171,8 +171,8 @@ describe('Tick Alignment', () => {
 
   it('fullRangeTicks: returns aligned MIN/MAX', () => {
     const [lower, upper] = fullRangeTicks(60);
-    expect(lower % 60).toBe(0);
-    expect(upper % 60).toBe(0);
+    expect(Math.abs(lower % 60)).toBe(0);
+    expect(Math.abs(upper % 60)).toBe(0);
     expect(lower).toBeLessThanOrEqual(MIN_TICK);
     expect(upper).toBeGreaterThanOrEqual(MAX_TICK);
   });
